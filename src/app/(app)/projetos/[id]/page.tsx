@@ -3,12 +3,16 @@ import { prisma } from "@/lib/prisma";
 import { formatarMoeda, formatarData } from "@/lib/format";
 import {
   CATEGORIA_LABELS,
+  CATEGORIA_ORDEM,
+  calcularImposto,
   calcularLucro,
   calcularMargem,
+  calcularValorLiquido,
   estaAtrasado,
+  resumoPorCategoria,
   totalCustos,
+  totalOrcado,
 } from "@/lib/projetos";
-import { CategoriaCusto } from "@prisma/client";
 import { adicionarCustoAction, removerCustoAction } from "../actions";
 import { StatusSelector } from "./StatusSelector";
 
@@ -24,15 +28,23 @@ export default async function ProjetoDetalhePage({
 
   const projeto = await prisma.projeto.findUnique({
     where: { id },
-    include: { custos: { orderBy: { data: "desc" } }, responsavel: true },
+    include: {
+      custos: { orderBy: { data: "desc" } },
+      orcamentos: true,
+      responsavel: true,
+    },
   });
 
   if (!projeto) notFound();
 
   const custos = totalCustos(projeto);
+  const imposto = calcularImposto(projeto);
+  const liquido = calcularValorLiquido(projeto);
   const lucro = calcularLucro(projeto);
   const margem = calcularMargem(projeto);
   const atrasado = estaAtrasado(projeto);
+  const resumoCategorias = resumoPorCategoria(projeto.custos, projeto.orcamentos);
+  const orcadoTotal = totalOrcado(projeto.orcamentos);
 
   const adicionarCustoComId = adicionarCustoAction.bind(null, projeto.id);
   const removerCustoComId = removerCustoAction.bind(null, projeto.id);
@@ -46,8 +58,20 @@ export default async function ProjetoDetalhePage({
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card titulo="Valor de venda" valor={formatarMoeda(projeto.valorVenda)} />
-        <Card titulo="Custos lançados" valor={formatarMoeda(custos)} />
+        <Card
+          titulo="Valor de venda"
+          valor={formatarMoeda(projeto.valorVenda)}
+          subtitulo={
+            projeto.percentualImposto > 0
+              ? `Líquido (-${projeto.percentualImposto}%): ${formatarMoeda(liquido)}`
+              : undefined
+          }
+        />
+        <Card
+          titulo="Custos lançados"
+          valor={formatarMoeda(custos)}
+          subtitulo={orcadoTotal > 0 ? `Orçado: ${formatarMoeda(orcadoTotal)}` : undefined}
+        />
         <Card
           titulo="Lucro"
           valor={formatarMoeda(lucro)}
@@ -65,6 +89,11 @@ export default async function ProjetoDetalhePage({
           <span className="text-on-surface-variant">
             Fechado em {formatarData(projeto.dataFechamento)} · Prazo {formatarData(projeto.prazoEntrega)}
           </span>
+          {projeto.percentualImposto > 0 && (
+            <span className="text-on-surface-variant">
+              Imposto/comissão: {formatarMoeda(imposto)} ({projeto.percentualImposto}%)
+            </span>
+          )}
           {atrasado && <span className="font-medium text-error">Projeto atrasado</span>}
           {projeto.responsavel && (
             <span className="text-on-surface-variant">Responsável: {projeto.responsavel.nome}</span>
@@ -77,6 +106,37 @@ export default async function ProjetoDetalhePage({
         </div>
       </div>
 
+      {resumoCategorias.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-label-bold text-on-background">Orçado x realizado</h2>
+          <div className={`overflow-x-auto ${CARD}`}>
+            <table className="w-full min-w-[480px] text-body-md">
+              <thead>
+                <tr className="border-b border-tertiary-fixed text-left text-on-surface-variant">
+                  <th className="pb-2 font-normal">Categoria</th>
+                  <th className="pb-2 font-normal">Orçado</th>
+                  <th className="pb-2 font-normal">Realizado</th>
+                  <th className="pb-2 font-normal">Diferença</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resumoCategorias.map((r) => (
+                  <tr key={r.categoria} className="border-b border-tertiary-fixed last:border-0">
+                    <td className="py-2 text-on-background">{CATEGORIA_LABELS[r.categoria]}</td>
+                    <td className="py-2 text-on-surface-variant">{formatarMoeda(r.orcado)}</td>
+                    <td className="py-2 text-on-surface-variant">{formatarMoeda(r.realizado)}</td>
+                    <td className={`py-2 font-medium ${r.diferenca < 0 ? "text-error" : "text-on-background"}`}>
+                      {r.diferenca < 0 ? "Estourou " : ""}
+                      {formatarMoeda(Math.abs(r.diferenca))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       <section className="flex flex-col gap-3">
         <h2 className="text-label-bold text-on-background">Custos</h2>
 
@@ -84,10 +144,10 @@ export default async function ProjetoDetalhePage({
           action={adicionarCustoComId}
           className={`grid grid-cols-1 gap-3 sm:grid-cols-[1fr_2fr_1fr_auto] ${CARD}`}
         >
-          <select name="categoria" defaultValue={CategoriaCusto.MATERIAL} className={INPUT}>
-            {Object.entries(CATEGORIA_LABELS).map(([valor, label]) => (
-              <option key={valor} value={valor}>
-                {label}
+          <select name="categoria" defaultValue={CATEGORIA_ORDEM[0]} className={INPUT}>
+            {CATEGORIA_ORDEM.map((categoria) => (
+              <option key={categoria} value={categoria}>
+                {CATEGORIA_LABELS[categoria]}
               </option>
             ))}
           </select>
@@ -146,10 +206,12 @@ export default async function ProjetoDetalhePage({
 function Card({
   titulo,
   valor,
+  subtitulo,
   destaque,
 }: {
   titulo: string;
   valor: string;
+  subtitulo?: string;
   destaque?: "positivo" | "negativo";
 }) {
   return (
@@ -167,6 +229,7 @@ function Card({
       >
         {valor}
       </p>
+      {subtitulo && <p className="mt-1 text-body-md text-on-surface-variant">{subtitulo}</p>}
     </div>
   );
 }

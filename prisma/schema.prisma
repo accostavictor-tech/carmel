@@ -18,8 +18,10 @@ enum StatusProducao {
 }
 
 enum CategoriaCusto {
-  MATERIAL
+  MATERIA_PRIMA
+  FERRAGENS_ACABAMENTO
   MAO_DE_OBRA
+  TERCEIRIZADOS
   OUTROS
 }
 
@@ -39,6 +41,7 @@ model Projeto {
   cliente           String
   descricao         String?
   valorVenda        Float
+  percentualImposto Float           @default(0) // % de imposto/comissão descontado do valor de venda
   dataFechamento    DateTime
   prazoEntrega      DateTime
   dataEntregaReal   DateTime?
@@ -48,7 +51,8 @@ model Projeto {
   criadoEm          DateTime        @default(now())
   atualizadoEm      DateTime        @updatedAt
 
-  custos Custo[]
+  custos     Custo[]
+  orcamentos OrcamentoCusto[]
 }
 
 model Custo {
@@ -59,6 +63,16 @@ model Custo {
   descricao   String
   valor       Float
   data        DateTime       @default(now())
+}
+
+model OrcamentoCusto {
+  id        String         @id @default(cuid())
+  projetoId String
+  projeto   Projeto        @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  categoria CategoriaCusto
+  valor     Float
+
+  @@unique([projetoId, categoria])
 }
 
 model MetaMensal {

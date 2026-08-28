@@ -20,6 +20,7 @@ export async function criarProjetoAction(formData: FormData) {
   const cliente = String(formData.get("cliente") ?? "").trim();
   const descricao = String(formData.get("descricao") ?? "").trim();
   const valorVenda = numeroDeFormData(formData, "valorVenda");
+  const percentualImposto = numeroDeFormData(formData, "percentualImposto");
   const dataFechamento = String(formData.get("dataFechamento") ?? "");
   const prazoEntrega = String(formData.get("prazoEntrega") ?? "");
 
@@ -27,15 +28,24 @@ export async function criarProjetoAction(formData: FormData) {
     throw new Error("Preencha os campos obrigatórios.");
   }
 
+  const orcamentos = Object.values(CategoriaCusto)
+    .map((categoria) => ({
+      categoria,
+      valor: numeroDeFormData(formData, `orcamento_${categoria}`),
+    }))
+    .filter((o) => o.valor > 0);
+
   const projeto = await prisma.projeto.create({
     data: {
       nome,
       cliente,
       descricao: descricao || null,
       valorVenda,
+      percentualImposto,
       dataFechamento: new Date(dataFechamento),
       prazoEntrega: new Date(prazoEntrega),
       responsavelId: session.user.id,
+      orcamentos: { create: orcamentos },
     },
   });
 

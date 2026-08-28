@@ -1,5 +1,6 @@
 import { criarProjetoAction } from "../actions";
 import { formatarDataInput } from "@/lib/format";
+import { CATEGORIA_LABELS, CATEGORIA_ORDEM } from "@/lib/projetos";
 
 const INPUT = "rounded border border-tertiary-fixed bg-transparent px-3 py-2 text-body-md text-on-surface outline-none transition focus:border-primary";
 const LABEL = "text-label-bold text-on-surface-variant";
@@ -42,19 +43,37 @@ export default function NovoProjetoPage() {
           <textarea id="descricao" name="descricao" rows={3} className={INPUT} />
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor="valorVenda" className={LABEL}>
-            Valor de venda (R$) *
-          </label>
-          <input
-            id="valorVenda"
-            name="valorVenda"
-            type="number"
-            step="0.01"
-            min="0"
-            required
-            className={INPUT}
-          />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-1">
+            <label htmlFor="valorVenda" className={LABEL}>
+              Valor de venda (R$) *
+            </label>
+            <input
+              id="valorVenda"
+              name="valorVenda"
+              type="number"
+              step="0.01"
+              min="0"
+              required
+              className={INPUT}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label htmlFor="percentualImposto" className={LABEL}>
+              Imposto/comissão (%)
+            </label>
+            <input
+              id="percentualImposto"
+              name="percentualImposto"
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              defaultValue={0}
+              className={INPUT}
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -77,6 +96,32 @@ export default function NovoProjetoPage() {
               Prazo de entrega *
             </label>
             <input id="prazoEntrega" name="prazoEntrega" type="date" required className={INPUT} />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 border-t border-tertiary-fixed pt-4">
+          <p className={LABEL}>Orçamento previsto por categoria (opcional)</p>
+          <p className="text-body-md text-on-surface-variant">
+            Estime quanto pretende gastar em cada categoria — depois dá pra comparar com o que foi
+            realmente lançado.
+          </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {CATEGORIA_ORDEM.map((categoria) => (
+              <div key={categoria} className="flex flex-col gap-1">
+                <label htmlFor={`orcamento_${categoria}`} className="text-body-md text-on-surface-variant">
+                  {CATEGORIA_LABELS[categoria]}
+                </label>
+                <input
+                  id={`orcamento_${categoria}`}
+                  name={`orcamento_${categoria}`}
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="R$ 0,00"
+                  className={INPUT}
+                />
+              </div>
+            ))}
           </div>
         </div>
 
