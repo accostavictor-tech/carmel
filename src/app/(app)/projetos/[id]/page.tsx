@@ -12,6 +12,9 @@ import { CategoriaCusto } from "@/generated/prisma/enums";
 import { adicionarCustoAction, removerCustoAction } from "../actions";
 import { StatusSelector } from "./StatusSelector";
 
+const CARD = "rounded-lg border border-tertiary-fixed bg-surface-container-lowest p-4 shadow-[0_10px_30px_rgba(29,45,61,0.05)]";
+const INPUT = "rounded border border-tertiary-fixed bg-transparent px-3 py-2 text-body-md text-on-surface outline-none transition focus:border-primary";
+
 export default async function ProjetoDetalhePage({
   params,
 }: {
@@ -37,9 +40,9 @@ export default async function ProjetoDetalhePage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <h1 className="text-lg font-semibold text-neutral-900">{projeto.nome}</h1>
-        <p className="text-sm text-neutral-500">{projeto.cliente}</p>
-        {projeto.descricao && <p className="mt-1 text-sm text-neutral-600">{projeto.descricao}</p>}
+        <h1 className="text-headline-lg text-on-background">{projeto.nome}</h1>
+        <p className="text-body-md text-on-surface-variant">{projeto.cliente}</p>
+        {projeto.descricao && <p className="mt-1 text-body-md text-on-surface-variant">{projeto.descricao}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -57,47 +60,38 @@ export default async function ProjetoDetalhePage({
         />
       </div>
 
-      <div className="flex flex-col gap-4 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-1 text-sm">
-          <span className="text-neutral-500">
+      <div className={`flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between ${CARD}`}>
+        <div className="flex flex-col gap-1 text-body-md">
+          <span className="text-on-surface-variant">
             Fechado em {formatarData(projeto.dataFechamento)} · Prazo {formatarData(projeto.prazoEntrega)}
           </span>
-          {atrasado && <span className="font-medium text-red-600">Projeto atrasado</span>}
+          {atrasado && <span className="font-medium text-error">Projeto atrasado</span>}
           {projeto.responsavel && (
-            <span className="text-neutral-500">Responsável: {projeto.responsavel.nome}</span>
+            <span className="text-on-surface-variant">Responsável: {projeto.responsavel.nome}</span>
           )}
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-neutral-500">Status de produção</label>
+          <label className="text-label-bold text-on-surface-variant">Status de produção</label>
           <StatusSelector projetoId={projeto.id} statusAtual={projeto.statusProducao} />
         </div>
       </div>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-base font-semibold text-neutral-900">Custos</h2>
+        <h2 className="text-label-bold text-on-background">Custos</h2>
 
         <form
           action={adicionarCustoComId}
-          className="grid grid-cols-1 gap-3 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm sm:grid-cols-[1fr_2fr_1fr_auto]"
+          className={`grid grid-cols-1 gap-3 sm:grid-cols-[1fr_2fr_1fr_auto] ${CARD}`}
         >
-          <select
-            name="categoria"
-            defaultValue={CategoriaCusto.MATERIAL}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-amber-700"
-          >
+          <select name="categoria" defaultValue={CategoriaCusto.MATERIAL} className={INPUT}>
             {Object.entries(CATEGORIA_LABELS).map(([valor, label]) => (
               <option key={valor} value={valor}>
                 {label}
               </option>
             ))}
           </select>
-          <input
-            name="descricao"
-            placeholder="Descrição do custo"
-            required
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-amber-700"
-          />
+          <input name="descricao" placeholder="Descrição do custo" required className={INPUT} />
           <input
             name="valor"
             type="number"
@@ -105,36 +99,36 @@ export default async function ProjetoDetalhePage({
             min="0"
             placeholder="Valor (R$)"
             required
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-amber-700"
+            className={INPUT}
           />
           <button
             type="submit"
-            className="rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-900"
+            className="rounded bg-primary px-4 py-2 text-body-md font-medium text-on-primary transition hover:bg-primary-container"
           >
             Adicionar
           </button>
         </form>
 
         {projeto.custos.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-neutral-300 bg-white p-6 text-center text-sm text-neutral-500">
+          <p className="rounded-lg border border-dashed border-outline-variant bg-surface-container-lowest p-6 text-center text-body-md text-on-surface-variant">
             Nenhum custo lançado ainda.
           </p>
         ) : (
-          <ul className="flex flex-col divide-y divide-neutral-200 rounded-lg border border-neutral-200 bg-white shadow-sm">
+          <ul className="flex flex-col divide-y divide-tertiary-fixed rounded-lg border border-tertiary-fixed bg-surface-container-lowest shadow-[0_10px_30px_rgba(29,45,61,0.05)]">
             {projeto.custos.map((custo) => {
               const removerEsteCusto = removerCustoComId.bind(null, custo.id);
               return (
-                <li key={custo.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                <li key={custo.id} className="flex items-center justify-between gap-3 px-4 py-3 text-body-md">
                   <div>
-                    <p className="text-neutral-900">{custo.descricao}</p>
-                    <p className="text-neutral-500">
+                    <p className="text-on-background">{custo.descricao}</p>
+                    <p className="text-on-surface-variant">
                       {CATEGORIA_LABELS[custo.categoria]} · {formatarData(custo.data)}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-medium text-neutral-900">{formatarMoeda(custo.valor)}</span>
+                    <span className="font-medium text-on-background">{formatarMoeda(custo.valor)}</span>
                     <form action={removerEsteCusto}>
-                      <button type="submit" className="text-neutral-400 hover:text-red-600" title="Remover">
+                      <button type="submit" className="text-on-surface-variant transition hover:text-error" title="Remover">
                         Remover
                       </button>
                     </form>
@@ -159,16 +153,16 @@ function Card({
   destaque?: "positivo" | "negativo";
 }) {
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
-      <p className="text-xs text-neutral-500">{titulo}</p>
+    <div className={CARD}>
+      <p className="text-label-bold text-on-surface-variant">{titulo}</p>
       <p
         className={
-          "mt-1 text-lg font-semibold " +
+          "mt-2 text-lg font-semibold " +
           (destaque === "negativo"
-            ? "text-red-600"
+            ? "text-error"
             : destaque === "positivo"
-              ? "text-emerald-700"
-              : "text-neutral-900")
+              ? "text-secondary"
+              : "text-on-background")
         }
       >
         {valor}

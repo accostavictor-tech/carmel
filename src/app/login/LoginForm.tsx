@@ -14,7 +14,7 @@ export function LoginForm() {
       <input type="hidden" name="callbackUrl" value={callbackUrl} />
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="email" className="text-sm font-medium text-neutral-700">
+        <label htmlFor="email" className="text-label-bold text-on-surface-variant">
           E-mail
         </label>
         <input
@@ -23,12 +23,12 @@ export function LoginForm() {
           type="email"
           required
           autoComplete="email"
-          className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+          className="rounded border border-tertiary-fixed bg-transparent px-3 py-2 text-body-md text-on-surface outline-none transition focus:border-primary"
         />
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="senha" className="text-sm font-medium text-neutral-700">
+        <label htmlFor="senha" className="text-label-bold text-on-surface-variant">
           Senha
         </label>
         <input
@@ -37,16 +37,16 @@ export function LoginForm() {
           type="password"
           required
           autoComplete="current-password"
-          className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+          className="rounded border border-tertiary-fixed bg-transparent px-3 py-2 text-body-md text-on-surface outline-none transition focus:border-primary"
         />
       </div>
 
-      {state?.erro && <p className="text-sm text-red-600">{state.erro}</p>}
+      {state?.erro && <p className="text-body-md text-error">{state.erro}</p>}
 
       <button
         type="submit"
         disabled={pending}
-        className="mt-2 rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-900 disabled:opacity-60"
+        className="mt-2 rounded bg-primary px-4 py-2 text-body-md font-medium text-on-primary transition hover:bg-primary-container disabled:opacity-60"
       >
         {pending ? "Entrando..." : "Entrar"}
       </button>

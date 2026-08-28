@@ -10,6 +10,8 @@ import {
 } from "@/lib/projetos";
 import { definirMetaAction } from "./actions";
 
+const CARD = "rounded-lg border border-tertiary-fixed bg-surface-container-lowest p-4 shadow-[0_10px_30px_rgba(29,45,61,0.05)]";
+
 export default async function DashboardPage() {
   const agora = new Date();
   const ano = agora.getFullYear();
@@ -52,21 +54,21 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-lg font-semibold text-neutral-900">Painel — {nomeMes}</h1>
+      <h1 className="text-headline-lg text-on-background">Painel — {nomeMes}</h1>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
-          <p className="text-xs text-neutral-500">Faturamento do mês</p>
-          <p className="mt-1 text-2xl font-semibold text-neutral-900">{formatarMoeda(faturamentoMes)}</p>
+        <div className={CARD}>
+          <p className="text-label-bold text-on-surface-variant">Faturamento do mês</p>
+          <p className="mt-2 text-2xl font-semibold text-on-background">{formatarMoeda(faturamentoMes)}</p>
 
           {meta ? (
             <>
-              <p className="mt-1 text-sm text-neutral-500">
+              <p className="mt-1 text-body-md text-on-surface-variant">
                 Meta: {formatarMoeda(meta.valorMeta)} ({percentualMeta!.toFixed(0)}%)
               </p>
-              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-neutral-100">
+              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-surface-container-highest">
                 <div
-                  className={`h-full rounded-full ${percentualMeta! >= 100 ? "bg-emerald-600" : "bg-amber-700"}`}
+                  className={`h-full rounded-full ${percentualMeta! >= 100 ? "bg-secondary" : "bg-primary"}`}
                   style={{ width: `${Math.min(percentualMeta!, 100)}%` }}
                 />
               </div>
@@ -82,63 +84,66 @@ export default async function DashboardPage() {
                 min="0"
                 placeholder="Definir meta (R$)"
                 required
-                className="w-full rounded-md border border-neutral-300 px-2 py-1 text-sm outline-none focus:border-amber-700"
+                className="w-full rounded border border-tertiary-fixed bg-transparent px-2 py-1 text-body-md outline-none focus:border-primary"
               />
-              <button type="submit" className="rounded-md bg-amber-800 px-3 py-1 text-sm text-white hover:bg-amber-900">
+              <button
+                type="submit"
+                className="rounded bg-primary px-3 py-1 text-body-md text-on-primary hover:bg-primary-container"
+              >
                 Salvar
               </button>
             </form>
           )}
         </div>
 
-        <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
-          <p className="text-xs text-neutral-500">Margem média (todos os projetos)</p>
+        <div className={CARD}>
+          <p className="text-label-bold text-on-surface-variant">Margem média</p>
           <p
-            className={`mt-1 text-2xl font-semibold ${
-              margemMedia !== null && margemMedia < 0 ? "text-red-600" : "text-neutral-900"
+            className={`mt-2 text-2xl font-semibold ${
+              margemMedia !== null && margemMedia < 0 ? "text-error" : "text-on-background"
             }`}
           >
             {margemMedia !== null ? `${margemMedia.toFixed(1)}%` : "—"}
           </p>
-          <p className="mt-1 text-sm text-neutral-500">{projetos.length} projeto(s) no total</p>
+          <p className="mt-1 text-body-md text-on-surface-variant">{projetos.length} projeto(s) no total</p>
         </div>
 
-        <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
-          <p className="text-xs text-neutral-500">Prazos</p>
-          <p className="mt-1 text-2xl font-semibold text-red-600">{projetosAtrasados.length} atrasado(s)</p>
-          <p className="mt-1 text-sm text-amber-700">
+        <div className={CARD}>
+          <p className="text-label-bold text-on-surface-variant">Prazos</p>
+          <p className="mt-2 text-2xl font-semibold text-error">{projetosAtrasados.length} atrasado(s)</p>
+          <p className="mt-1 text-body-md text-secondary">
             {projetosProximosDoPrazo.length} vencendo nos próximos 7 dias
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <section className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-neutral-900">Produção por etapa</h2>
-          <ul className="mt-3 flex flex-col gap-2">
+        <section className={CARD}>
+          <h2 className="text-label-bold text-on-background">Produção por etapa</h2>
+          <ul className="mt-3 flex flex-col divide-y divide-tertiary-fixed">
             {porEtapa.map(({ status, quantidade }) => (
-              <li key={status} className="flex items-center justify-between text-sm">
-                <span className="text-neutral-600">{STATUS_LABELS[status]}</span>
-                <span className="font-medium text-neutral-900">{quantidade}</span>
+              <li key={status} className="flex items-center justify-between py-2 text-body-md">
+                <span className="text-on-surface-variant">{STATUS_LABELS[status]}</span>
+                <span className="font-medium text-on-background">{quantidade}</span>
               </li>
             ))}
           </ul>
         </section>
 
-        <section className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-neutral-900">Projetos que precisam de atenção</h2>
+        <section className={CARD}>
+          <h2 className="text-label-bold text-on-background">Projetos que precisam de atenção</h2>
           {projetosAtrasados.length === 0 && projetosProximosDoPrazo.length === 0 ? (
-            <p className="mt-3 text-sm text-neutral-500">Nenhum projeto atrasado ou com prazo próximo.</p>
+            <p className="mt-3 text-body-md text-on-surface-variant">Nenhum projeto atrasado ou com prazo próximo.</p>
           ) : (
-            <ul className="mt-3 flex flex-col gap-2">
+            <ul className="mt-3 flex flex-col divide-y divide-tertiary-fixed">
               {[...projetosAtrasados, ...projetosProximosDoPrazo].map((projeto) => (
-                <li key={projeto.id}>
+                <li key={projeto.id} className="py-2">
                   <Link
                     href={`/projetos/${projeto.id}`}
-                    className="flex items-center justify-between text-sm hover:underline"
+                    className="flex items-center justify-between text-body-md hover:text-primary"
                   >
-                    <span className="text-neutral-800">{projeto.nome}</span>
-                    <span className={estaAtrasado(projeto) ? "font-medium text-red-600" : "text-amber-700"}>
+                    <span className="text-on-background">{projeto.nome}</span>
+                    <span className={estaAtrasado(projeto) ? "font-medium text-error" : "text-secondary"}>
                       {formatarData(projeto.prazoEntrega)}
                     </span>
                   </Link>

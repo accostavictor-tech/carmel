@@ -1,12 +1,22 @@
+import Image from "next/image";
 import { Suspense } from "react";
 import { LoginForm } from "./LoginForm";
 
 export default function LoginPage() {
   return (
-    <main className="flex flex-1 items-center justify-center px-4">
-      <div className="w-full max-w-sm rounded-xl border border-neutral-200 bg-white p-8 shadow-sm">
-        <h1 className="text-xl font-semibold text-neutral-900">Marcenaria Carmel</h1>
-        <p className="mt-1 text-sm text-neutral-500">Entre com sua conta para acessar a gestão.</p>
+    <main className="flex flex-1 items-center justify-center bg-surface-container-low px-4">
+      <div className="w-full max-w-sm rounded-lg border border-tertiary-fixed bg-surface-container-lowest p-8 shadow-[0_10px_30px_rgba(7,24,40,0.08)]">
+        <Image
+          src="/brand/carmel-logo-horizontal.png"
+          alt="Marcenaria Carmel"
+          width={140}
+          height={42}
+          priority
+          className="h-10 w-auto"
+        />
+        <p className="mt-4 text-body-md text-on-surface-variant">
+          Entre com sua conta para acessar a gestão.
+        </p>
 
         <Suspense>
           <LoginForm />

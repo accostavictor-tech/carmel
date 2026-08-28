@@ -12,17 +12,17 @@ export default async function ProjetosPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-neutral-900">Projetos</h1>
+        <h1 className="text-headline-lg text-on-background">Projetos</h1>
         <Link
           href="/projetos/novo"
-          className="rounded-md bg-amber-800 px-4 py-2 text-sm font-medium text-white hover:bg-amber-900"
+          className="rounded bg-secondary px-4 py-2 text-body-md font-medium text-on-secondary transition hover:opacity-90"
         >
           Novo projeto
         </Link>
       </div>
 
       {projetos.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-neutral-300 bg-white p-8 text-center text-sm text-neutral-500">
+        <p className="rounded-lg border border-dashed border-outline-variant bg-surface-container-lowest p-8 text-center text-body-md text-on-surface-variant">
           Nenhum projeto cadastrado ainda. Clique em &quot;Novo projeto&quot; para começar.
         </p>
       ) : (
@@ -34,22 +34,22 @@ export default async function ProjetosPage() {
               <li key={projeto.id}>
                 <Link
                   href={`/projetos/${projeto.id}`}
-                  className="flex flex-col gap-2 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm transition hover:border-amber-700 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-2 rounded-lg border border-tertiary-fixed bg-surface-container-lowest p-4 shadow-[0_10px_30px_rgba(29,45,61,0.05)] transition hover:border-primary sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
-                    <p className="font-medium text-neutral-900">{projeto.nome}</p>
-                    <p className="text-sm text-neutral-500">{projeto.cliente}</p>
+                    <p className="font-display font-semibold text-on-background">{projeto.nome}</p>
+                    <p className="text-body-md text-on-surface-variant">{projeto.cliente}</p>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
-                    <span className="text-neutral-700">{formatarMoeda(projeto.valorVenda)}</span>
-                    <span className={margem !== null && margem < 0 ? "font-medium text-red-600" : "text-neutral-600"}>
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-body-md">
+                    <span className="text-on-surface-variant">{formatarMoeda(projeto.valorVenda)}</span>
+                    <span className={margem !== null && margem < 0 ? "font-medium text-error" : "text-on-surface-variant"}>
                       Margem: {margem !== null ? `${margem.toFixed(0)}%` : "—"}
                     </span>
-                    <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-neutral-700">
+                    <span className="rounded-lg bg-tertiary-fixed px-2 py-0.5 text-primary text-label-bold">
                       {STATUS_LABELS[projeto.statusProducao]}
                     </span>
-                    <span className={atrasado ? "font-medium text-red-600" : "text-neutral-500"}>
+                    <span className={atrasado ? "font-medium text-error" : "text-on-surface-variant"}>
                       Prazo: {formatarData(projeto.prazoEntrega)}
                       {atrasado ? " (atrasado)" : ""}
                     </span>

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { logoutAction } from "./actions";
@@ -7,26 +8,33 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <header className="border-b border-neutral-200 bg-white">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <div className="flex items-center gap-6">
-            <Link href="/" className="text-base font-semibold text-neutral-900">
-              Marcenaria Carmel
+      <header className="border-b border-tertiary-fixed bg-surface-container-lowest">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <div className="flex items-center gap-8">
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/brand/carmel-logo-horizontal.png"
+                alt="Marcenaria Carmel"
+                width={112}
+                height={33}
+                priority
+                className="h-8 w-auto"
+              />
             </Link>
-            <nav className="flex gap-4 text-sm">
-              <Link href="/" className="text-neutral-600 hover:text-neutral-900">
+            <nav className="flex gap-6 text-body-md">
+              <Link href="/" className="text-on-surface-variant transition hover:text-primary">
                 Painel
               </Link>
-              <Link href="/projetos" className="text-neutral-600 hover:text-neutral-900">
+              <Link href="/projetos" className="text-on-surface-variant transition hover:text-primary">
                 Projetos
               </Link>
             </nav>
           </div>
 
-          <div className="flex items-center gap-3 text-sm text-neutral-600">
+          <div className="flex items-center gap-4 text-body-md text-on-surface-variant">
             <span>{session?.user?.name}</span>
             <form action={logoutAction}>
-              <button type="submit" className="text-neutral-500 hover:text-neutral-900 hover:underline">
+              <button type="submit" className="transition hover:text-primary hover:underline">
                 Sair
               </button>
             </form>
@@ -34,7 +42,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">{children}</main>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6">{children}</main>
     </div>
   );
 }

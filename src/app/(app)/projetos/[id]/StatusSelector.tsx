@@ -24,7 +24,7 @@ export function StatusSelector({
           atualizarStatusAction(projetoId, novoStatus);
         });
       }}
-      className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-amber-700 disabled:opacity-60"
+      className="rounded border border-tertiary-fixed bg-surface-container-lowest px-3 py-2 text-body-md text-on-surface outline-none transition focus:border-primary disabled:opacity-60"
     >
       {STATUS_ORDEM.map((status) => (
         <option key={status} value={status}>
