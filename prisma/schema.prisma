@@ -1,0 +1,72 @@
+// Schema do sistema de gestão da Marcenaria Carmel
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum StatusProducao {
+  FILA
+  PRODUCAO
+  ACABAMENTO
+  ENTREGA
+  CONCLUIDO
+}
+
+enum CategoriaCusto {
+  MATERIAL
+  MAO_DE_OBRA
+  OUTROS
+}
+
+model Usuario {
+  id        String   @id @default(cuid())
+  nome      String
+  email     String   @unique
+  senhaHash String
+  criadoEm  DateTime @default(now())
+
+  projetos Projeto[] @relation("ProjetoResponsavel")
+}
+
+model Projeto {
+  id                String          @id @default(cuid())
+  nome              String
+  cliente           String
+  descricao         String?
+  valorVenda        Float
+  dataFechamento    DateTime
+  prazoEntrega      DateTime
+  dataEntregaReal   DateTime?
+  statusProducao    StatusProducao  @default(FILA)
+  responsavelId     String?
+  responsavel       Usuario?        @relation("ProjetoResponsavel", fields: [responsavelId], references: [id])
+  criadoEm          DateTime        @default(now())
+  atualizadoEm      DateTime        @updatedAt
+
+  custos Custo[]
+}
+
+model Custo {
+  id          String         @id @default(cuid())
+  projetoId   String
+  projeto     Projeto        @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+  categoria   CategoriaCusto
+  descricao   String
+  valor       Float
+  data        DateTime       @default(now())
+}
+
+model MetaMensal {
+  id           String   @id @default(cuid())
+  ano          Int
+  mes          Int // 1-12
+  valorMeta    Float
+
+  @@unique([ano, mes])
+}
