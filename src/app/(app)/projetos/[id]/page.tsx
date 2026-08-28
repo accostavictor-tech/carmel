@@ -17,7 +17,21 @@ import { adicionarCustoAction, removerCustoAction } from "../actions";
 import { StatusSelector } from "./StatusSelector";
 
 const CARD = "rounded-lg border border-tertiary-fixed bg-surface-container-lowest p-4 shadow-[0_10px_30px_rgba(29,45,61,0.05)]";
-const INPUT = "rounded border border-tertiary-fixed bg-transparent px-3 py-2 text-body-md text-on-surface outline-none transition focus:border-primary";
+const INPUT = "h-10 w-full rounded-md border border-tertiary-fixed bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-1 focus:ring-primary";
+const FIELD_LABEL = "text-xs font-semibold uppercase tracking-wide text-on-surface-variant";
+const BTN_PRIMARY = "inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-body-md font-medium text-on-primary transition hover:bg-primary-container";
+const BTN_TEXT_DANGER = "text-body-md text-on-surface-variant transition hover:text-error";
+
+function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={htmlFor} className={FIELD_LABEL}>
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
 
 export default async function ProjetoDetalhePage({
   params,
@@ -100,10 +114,9 @@ export default async function ProjetoDetalhePage({
           )}
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-label-bold text-on-surface-variant">Status de produção</label>
+        <Field label="Status de produção">
           <StatusSelector projetoId={projeto.id} statusAtual={projeto.statusProducao} />
-        </div>
+        </Field>
       </div>
 
       {resumoCategorias.length > 0 && (
@@ -142,29 +155,24 @@ export default async function ProjetoDetalhePage({
 
         <form
           action={adicionarCustoComId}
-          className={`grid grid-cols-1 gap-3 sm:grid-cols-[1fr_2fr_1fr_auto] ${CARD}`}
+          className={`grid grid-cols-1 gap-3 sm:grid-cols-[1fr_2fr_1fr_auto] sm:items-end ${CARD}`}
         >
-          <select name="categoria" defaultValue={CATEGORIA_ORDEM[0]} className={INPUT}>
-            {CATEGORIA_ORDEM.map((categoria) => (
-              <option key={categoria} value={categoria}>
-                {CATEGORIA_LABELS[categoria]}
-              </option>
-            ))}
-          </select>
-          <input name="descricao" placeholder="Descrição do custo" required className={INPUT} />
-          <input
-            name="valor"
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="Valor (R$)"
-            required
-            className={INPUT}
-          />
-          <button
-            type="submit"
-            className="rounded bg-primary px-4 py-2 text-body-md font-medium text-on-primary transition hover:bg-primary-container"
-          >
+          <Field label="Categoria" htmlFor="custo-categoria">
+            <select id="custo-categoria" name="categoria" defaultValue={CATEGORIA_ORDEM[0]} className={INPUT}>
+              {CATEGORIA_ORDEM.map((categoria) => (
+                <option key={categoria} value={categoria}>
+                  {CATEGORIA_LABELS[categoria]}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Descrição" htmlFor="custo-descricao">
+            <input id="custo-descricao" name="descricao" required className={INPUT} />
+          </Field>
+          <Field label="Valor (R$)" htmlFor="custo-valor">
+            <input id="custo-valor" name="valor" type="number" step="0.01" min="0" required className={INPUT} />
+          </Field>
+          <button type="submit" className={BTN_PRIMARY}>
             Adicionar
           </button>
         </form>
@@ -188,7 +196,7 @@ export default async function ProjetoDetalhePage({
                   <div className="flex items-center gap-3">
                     <span className="font-medium text-on-background">{formatarMoeda(custo.valor)}</span>
                     <form action={removerEsteCusto}>
-                      <button type="submit" className="text-on-surface-variant transition hover:text-error" title="Remover">
+                      <button type="submit" className={BTN_TEXT_DANGER} title="Remover">
                         Remover
                       </button>
                     </form>

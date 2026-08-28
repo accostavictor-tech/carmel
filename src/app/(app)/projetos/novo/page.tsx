@@ -2,7 +2,8 @@ import { criarProjetoAction } from "../actions";
 import { formatarDataInput } from "@/lib/format";
 import { CATEGORIA_LABELS, CATEGORIA_ORDEM } from "@/lib/projetos";
 
-const INPUT = "rounded border border-tertiary-fixed bg-transparent px-3 py-2 text-body-md text-on-surface outline-none transition focus:border-primary";
+const INPUT = "h-10 w-full rounded-md border border-tertiary-fixed bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-1 focus:ring-primary";
+const TEXTAREA = "w-full rounded-md border border-tertiary-fixed bg-surface-container-lowest px-3 py-2 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-1 focus:ring-primary";
 const LABEL = "text-label-bold text-on-surface-variant";
 
 export default function NovoProjetoPage() {
@@ -40,7 +41,7 @@ export default function NovoProjetoPage() {
           <label htmlFor="descricao" className={LABEL}>
             Descrição
           </label>
-          <textarea id="descricao" name="descricao" rows={3} className={INPUT} />
+          <textarea id="descricao" name="descricao" rows={3} className={TEXTAREA} />
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -127,7 +128,7 @@ export default function NovoProjetoPage() {
 
         <button
           type="submit"
-          className="mt-2 rounded bg-primary px-4 py-2 text-body-md font-medium text-on-primary transition hover:bg-primary-container"
+          className="mt-2 inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-body-md font-medium text-on-primary transition hover:bg-primary-container"
         >
           Criar projeto
         </button>

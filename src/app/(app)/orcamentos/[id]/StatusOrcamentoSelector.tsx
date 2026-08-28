@@ -26,7 +26,7 @@ export function StatusOrcamentoSelector({
           atualizarStatusOrcamentoAction(orcamentoId, novoStatus);
         });
       }}
-      className="rounded border border-tertiary-fixed bg-surface-container-lowest px-3 py-2 text-body-md text-on-surface outline-none transition focus:border-primary disabled:opacity-60"
+      className="h-10 rounded-md border border-tertiary-fixed bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-60"
     >
       {STATUS_ORCAMENTO_ORDEM.map((status) => (
         <option key={status} value={status}>
