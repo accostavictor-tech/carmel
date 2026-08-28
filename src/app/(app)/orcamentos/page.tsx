@@ -5,7 +5,7 @@ import { STATUS_ORCAMENTO_LABELS, totalOrcamento } from "@/lib/orcamentos";
 
 export default async function OrcamentosPage() {
   const orcamentos = await prisma.orcamento.findMany({
-    include: { ambientes: { include: { itens: true, encargos: true } } },
+    include: { ambientes: { include: { itens: true } }, encargos: true },
     orderBy: { criadoEm: "desc" },
   });
 
@@ -28,7 +28,7 @@ export default async function OrcamentosPage() {
       ) : (
         <ul className="flex flex-col gap-3">
           {orcamentos.map((orcamento) => {
-            const total = totalOrcamento(orcamento.ambientes);
+            const total = totalOrcamento(orcamento.ambientes, orcamento.encargos);
             return (
               <li key={orcamento.id}>
                 <Link

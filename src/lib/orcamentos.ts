@@ -22,14 +22,13 @@ export const CATEGORIA_INSUMO_LABELS: Record<CategoriaInsumo, string> = {
 
 export const CATEGORIA_INSUMO_ORDEM: CategoriaInsumo[] = ["MDF", "FERRAGENS", "OUTROS"];
 
-type ItemCalc = { valorUnitario: number; quantidade: number };
-type EncargoCalc = { nome: string; percentual: number; nivel: number; ordem: number };
+type ItemCalc = { valorUnitario: number; quantidade: number; percentualPerda: number };
+export type EncargoCalc = { nome: string; percentual: number; nivel: number; ordem: number };
 
 export type AmbienteCalc = {
   percentualInsumosGerais: number;
   percentualLucro: number;
   itens: ItemCalc[];
-  encargos: EncargoCalc[];
 };
 
 export type EncargoCalculado = {
@@ -55,20 +54,23 @@ export type ResultadoAmbiente = {
 };
 
 export function totalItensAmbiente(itens: ItemCalc[]): number {
-  return itens.reduce((soma, item) => soma + item.valorUnitario * item.quantidade, 0);
+  return itens.reduce(
+    (soma, item) => soma + item.valorUnitario * item.quantidade * (1 + item.percentualPerda / 100),
+    0
+  );
 }
 
-export function calcularAmbiente(ambiente: AmbienteCalc): ResultadoAmbiente {
+export function calcularAmbiente(ambiente: AmbienteCalc, encargos: EncargoCalc[]): ResultadoAmbiente {
   const totalItens = totalItensAmbiente(ambiente.itens);
   const totalCompra = totalItens + (totalItens * ambiente.percentualInsumosGerais) / 100;
   const totalVenda = totalCompra + (totalCompra * ambiente.percentualLucro) / 100;
 
-  const numerosNiveis = [...new Set(ambiente.encargos.map((e) => e.nivel))].sort((a, b) => a - b);
+  const numerosNiveis = [...new Set(encargos.map((e) => e.nivel))].sort((a, b) => a - b);
 
   let subtotal = totalVenda;
   const niveis: NivelCalculado[] = numerosNiveis.map((nivel) => {
     const baseInicial = subtotal;
-    const encargosDoNivel = ambiente.encargos
+    const encargosDoNivel = encargos
       .filter((e) => e.nivel === nivel)
       .sort((a, b) => a.ordem - b.ordem);
 
@@ -87,10 +89,10 @@ export function calcularAmbiente(ambiente: AmbienteCalc): ResultadoAmbiente {
   return { totalItens, totalCompra, totalVenda, niveis, totalFinal: subtotal };
 }
 
-export function totalOrcamento(ambientes: AmbienteCalc[]): number {
-  return ambientes.reduce((soma, ambiente) => soma + calcularAmbiente(ambiente).totalFinal, 0);
+export function totalOrcamento(ambientes: AmbienteCalc[], encargos: EncargoCalc[]): number {
+  return ambientes.reduce((soma, ambiente) => soma + calcularAmbiente(ambiente, encargos).totalFinal, 0);
 }
 
-export function totalInsumosOrcamento(ambientes: AmbienteCalc[]): number {
-  return ambientes.reduce((soma, ambiente) => soma + calcularAmbiente(ambiente).totalCompra, 0);
+export function totalInsumosOrcamento(ambientes: AmbienteCalc[], encargos: EncargoCalc[]): number {
+  return ambientes.reduce((soma, ambiente) => soma + calcularAmbiente(ambiente, encargos).totalCompra, 0);
 }

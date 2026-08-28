@@ -136,6 +136,7 @@ export async function adicionarItemAction(
         descricao: insumo.nome,
         unidade: insumo.unidade,
         valorUnitario: insumo.valorUnitario,
+        percentualPerda: insumo.percentualPerda,
         quantidade,
       },
     });
@@ -143,13 +144,14 @@ export async function adicionarItemAction(
     const descricao = String(formData.get("descricao") ?? "").trim();
     const unidade = String(formData.get("unidade") ?? "").trim();
     const valorUnitario = numeroDeFormData(formData, "valorUnitario");
+    const percentualPerda = numeroDeFormData(formData, "percentualPerda");
 
     if (!descricao || !unidade || valorUnitario <= 0) {
       throw new Error("Preencha descrição, unidade e valor do item avulso.");
     }
 
     await prisma.itemAmbiente.create({
-      data: { ambienteId, descricao, unidade, valorUnitario, quantidade },
+      data: { ambienteId, descricao, unidade, valorUnitario, percentualPerda, quantidade },
     });
   }
 
@@ -161,11 +163,7 @@ export async function removerItemAction(orcamentoId: string, itemId: string) {
   revalidatePath(`/orcamentos/${orcamentoId}`);
 }
 
-export async function adicionarEncargoAction(
-  orcamentoId: string,
-  ambienteId: string,
-  formData: FormData
-) {
+export async function adicionarEncargoOrcamentoAction(orcamentoId: string, formData: FormData) {
   const nome = String(formData.get("nome") ?? "").trim();
   const percentual = numeroDeFormData(formData, "percentual");
   const nivel = Math.max(1, Math.round(numeroDeFormData(formData, "nivel")) || 1);
@@ -174,17 +172,17 @@ export async function adicionarEncargoAction(
     throw new Error("Dê um nome ao encargo.");
   }
 
-  const quantidadeAtual = await prisma.encargoAmbiente.count({ where: { ambienteId } });
+  const quantidadeAtual = await prisma.encargoOrcamento.count({ where: { orcamentoId } });
 
-  await prisma.encargoAmbiente.create({
-    data: { ambienteId, nome, percentual, nivel, ordem: quantidadeAtual },
+  await prisma.encargoOrcamento.create({
+    data: { orcamentoId, nome, percentual, nivel, ordem: quantidadeAtual },
   });
 
   revalidatePath(`/orcamentos/${orcamentoId}`);
 }
 
-export async function removerEncargoAction(orcamentoId: string, encargoId: string) {
-  await prisma.encargoAmbiente.delete({ where: { id: encargoId } });
+export async function removerEncargoOrcamentoAction(orcamentoId: string, encargoId: string) {
+  await prisma.encargoOrcamento.delete({ where: { id: encargoId } });
   revalidatePath(`/orcamentos/${orcamentoId}`);
 }
 
@@ -194,14 +192,14 @@ export async function aprovarOrcamentoAction(orcamentoId: string) {
 
   const orcamento = await prisma.orcamento.findUnique({
     where: { id: orcamentoId },
-    include: { ambientes: { include: { itens: true, encargos: true } } },
+    include: { ambientes: { include: { itens: true } }, encargos: true },
   });
 
   if (!orcamento) throw new Error("Orçamento não encontrado.");
   if (orcamento.projetoId) throw new Error("Este orçamento já foi convertido em projeto.");
 
-  const valorVenda = totalOrcamento(orcamento.ambientes);
-  const totalInsumos = totalInsumosOrcamento(orcamento.ambientes);
+  const valorVenda = totalOrcamento(orcamento.ambientes, orcamento.encargos);
+  const totalInsumos = totalInsumosOrcamento(orcamento.ambientes, orcamento.encargos);
 
   const hoje = new Date();
   const prazoEntrega = new Date(hoje);

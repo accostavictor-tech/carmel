@@ -6,7 +6,7 @@ import { formatarMoeda } from "@/lib/format";
 import { calcularAmbiente, totalOrcamento } from "@/lib/orcamentos";
 import { CategoriaInsumo } from "@prisma/client";
 import {
-  adicionarEncargoAction,
+  adicionarEncargoOrcamentoAction,
   adicionarItemAction,
   aprovarOrcamentoAction,
   atualizarAmbienteAction,
@@ -14,7 +14,7 @@ import {
   atualizarPercentuaisAmbienteAction,
   criarAmbienteAction,
   removerAmbienteAction,
-  removerEncargoAction,
+  removerEncargoOrcamentoAction,
   removerItemAction,
 } from "../actions";
 import { StatusOrcamentoSelector } from "./StatusOrcamentoSelector";
@@ -30,15 +30,30 @@ const BTN_SECONDARY = "inline-flex h-10 items-center justify-center rounded-md b
 const BTN_TEXT = "text-body-md font-medium text-primary transition hover:underline";
 const BTN_TEXT_DANGER = "text-body-md text-on-surface-variant transition hover:text-error";
 
-type Insumo = { id: string; nome: string; categoria: CategoriaInsumo; unidade: string; valorUnitario: number };
+type Insumo = {
+  id: string;
+  nome: string;
+  categoria: CategoriaInsumo;
+  unidade: string;
+  valorUnitario: number;
+  percentualPerda: number;
+};
+
+type Encargo = { id: string; nome: string; percentual: number; nivel: number; ordem: number };
 
 type Ambiente = {
   id: string;
   nome: string;
   percentualInsumosGerais: number;
   percentualLucro: number;
-  itens: { id: string; descricao: string; unidade: string; valorUnitario: number; quantidade: number }[];
-  encargos: { id: string; nome: string; percentual: number; nivel: number; ordem: number }[];
+  itens: {
+    id: string;
+    descricao: string;
+    unidade: string;
+    valorUnitario: number;
+    percentualPerda: number;
+    quantidade: number;
+  }[];
 };
 
 function Field({
@@ -86,8 +101,9 @@ export default async function OrcamentoDetalhePage({
       include: {
         ambientes: {
           orderBy: { ordem: "asc" },
-          include: { itens: true, encargos: { orderBy: { ordem: "asc" } } },
+          include: { itens: true },
         },
+        encargos: { orderBy: { ordem: "asc" } },
       },
     }),
     getInsumosAtivos(),
@@ -95,13 +111,15 @@ export default async function OrcamentoDetalhePage({
 
   if (!orcamento) notFound();
 
-  const total = totalOrcamento(orcamento.ambientes);
+  const total = totalOrcamento(orcamento.ambientes, orcamento.encargos);
   const totalComImposto = total - total * (orcamento.percentualImposto / 100);
   const jaConvertido = Boolean(orcamento.projetoId);
 
   const criarAmbienteComId = criarAmbienteAction.bind(null, orcamento.id);
   const aprovarComId = aprovarOrcamentoAction.bind(null, orcamento.id);
   const atualizarImpostoComId = atualizarImpostoOrcamentoAction.bind(null, orcamento.id);
+  const adicionarEncargoComId = adicionarEncargoOrcamentoAction.bind(null, orcamento.id);
+  const proximoNivelEncargo = orcamento.encargos.reduce((max, e) => Math.max(max, e.nivel), 0) + 1;
 
   return (
     <div className="flex flex-col gap-8">
@@ -168,6 +186,73 @@ export default async function OrcamentoDetalhePage({
         </form>
       )}
 
+      <div className={`flex flex-col gap-4 ${CARD}`}>
+        <div className="flex flex-col gap-1.5">
+          <p className={LABEL}>Comissões e encargos do orçamento</p>
+          <p className="text-body-md text-on-surface-variant">
+            Definidos uma única vez e aplicados sobre o valor de venda de todos os ambientes.
+            Encargos com o mesmo nível incidem sobre a mesma base e se somam; o próximo nível
+            cascateia sobre o resultado.
+          </p>
+        </div>
+
+        {!jaConvertido && (
+          <form
+            action={adicionarEncargoComId}
+            className={`grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,0.7fr)_minmax(0,0.7fr)_auto] sm:items-end ${PAINEL}`}
+          >
+            <Field label="Nome do encargo" htmlFor="orc-encargoNome">
+              <input id="orc-encargoNome" name="nome" placeholder="Ex: Comissão, Cartão, Sócios" required className={INPUT} />
+            </Field>
+            <Field label="Percentual (%)" htmlFor="orc-encargoPct">
+              <input id="orc-encargoPct" name="percentual" type="number" step="0.01" min="0" required className={INPUT} />
+            </Field>
+            <Field label="Nível" htmlFor="orc-encargoNivel">
+              <input
+                id="orc-encargoNivel"
+                name="nivel"
+                type="number"
+                step="1"
+                min="1"
+                defaultValue={proximoNivelEncargo}
+                title="Encargos do mesmo nível somam sobre a mesma base"
+                className={INPUT}
+              />
+            </Field>
+            <button type="submit" className={BTN_PRIMARY}>
+              Adicionar
+            </button>
+          </form>
+        )}
+
+        {orcamento.encargos.length === 0 ? (
+          <p className="text-body-md text-on-surface-variant">Nenhum encargo lançado.</p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-tertiary-fixed rounded-lg border border-tertiary-fixed">
+            {orcamento.encargos.map((encargo) => {
+              const removerEncargoComId = removerEncargoOrcamentoAction.bind(null, orcamento.id, encargo.id);
+              return (
+                <li key={encargo.id} className="flex items-center justify-between gap-2 px-4 py-3 text-body-md">
+                  <span className="text-on-background">
+                    {encargo.nome} <span className="text-on-surface-variant">· nível {encargo.nivel}</span>
+                  </span>
+                  <div className="flex items-center gap-4">
+                    <span className="text-on-surface-variant">{encargo.percentual}%</span>
+                    {!jaConvertido && (
+                      <form action={removerEncargoComId}>
+                        <button type="submit" className={BTN_TEXT_DANGER}>
+                          Remover
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
       <div className="flex flex-col gap-6">
         {orcamento.ambientes.map((ambiente, index) => (
           <AmbienteCard
@@ -175,6 +260,7 @@ export default async function OrcamentoDetalhePage({
             orcamentoId={orcamento.id}
             ambiente={ambiente}
             insumos={insumos}
+            encargos={orcamento.encargos}
             bloqueado={jaConvertido}
             abertoPorPadrao={index === orcamento.ambientes.length - 1}
           />
@@ -205,24 +291,24 @@ function AmbienteCard({
   orcamentoId,
   ambiente,
   insumos,
+  encargos,
   bloqueado,
   abertoPorPadrao,
 }: {
   orcamentoId: string;
   ambiente: Ambiente;
   insumos: Insumo[];
+  encargos: Encargo[];
   bloqueado: boolean;
   abertoPorPadrao: boolean;
 }) {
-  const resultado = calcularAmbiente(ambiente);
-  const proximoNivel = ambiente.encargos.reduce((max, e) => Math.max(max, e.nivel), 0) + 1;
+  const resultado = calcularAmbiente(ambiente, encargos);
   const uid = ambiente.id;
 
   const atualizarComId = atualizarAmbienteAction.bind(null, orcamentoId, ambiente.id);
   const atualizarPercentuaisComId = atualizarPercentuaisAmbienteAction.bind(null, orcamentoId, ambiente.id);
   const removerAmbienteComId = removerAmbienteAction.bind(null, orcamentoId, ambiente.id);
   const adicionarItemComId = adicionarItemAction.bind(null, orcamentoId, ambiente.id);
-  const adicionarEncargoComId = adicionarEncargoAction.bind(null, orcamentoId, ambiente.id);
 
   return (
     <details
@@ -306,7 +392,7 @@ function AmbienteCard({
               </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 border-t border-tertiary-fixed pt-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 border-t border-tertiary-fixed pt-4 sm:grid-cols-4">
               <Field label="Ou descrição do item avulso" htmlFor={`${uid}-descricao`}>
                 <input id={`${uid}-descricao`} name="descricao" className={INPUT} />
               </Field>
@@ -320,6 +406,17 @@ function AmbienteCard({
                   type="number"
                   step="0.01"
                   min="0"
+                  className={INPUT}
+                />
+              </Field>
+              <Field label="Perda (%)" htmlFor={`${uid}-percentualPerda`}>
+                <input
+                  id={`${uid}-percentualPerda`}
+                  name="percentualPerda"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  defaultValue={0}
                   className={INPUT}
                 />
               </Field>
@@ -339,11 +436,12 @@ function AmbienteCard({
                     <p className="text-on-background">{item.descricao}</p>
                     <p className="text-on-surface-variant">
                       {item.quantidade} {item.unidade} × {formatarMoeda(item.valorUnitario)}
+                      {item.percentualPerda > 0 ? ` (+${item.percentualPerda}% perda)` : ""}
                     </p>
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="font-medium text-on-background">
-                      {formatarMoeda(item.quantidade * item.valorUnitario)}
+                      {formatarMoeda(item.quantidade * item.valorUnitario * (1 + item.percentualPerda / 100))}
                     </span>
                     {!bloqueado && (
                       <form action={removerItemComId}>
@@ -411,47 +509,17 @@ function AmbienteCard({
         </div>
       </div>
 
-      {/* 3. Comissões e encargos */}
+      {/* 3. Comissões e encargos (definidos no orçamento) */}
       <div className="flex flex-col gap-4 border-t border-tertiary-fixed pt-6">
         <div className="flex flex-col gap-1.5">
           <StepHeading numero={3} titulo="Comissões e encargos" />
           <p className="pl-8 text-body-md text-on-surface-variant">
-            Encargos com o mesmo nível incidem sobre a mesma base e se somam; o próximo nível
-            cascateia sobre o resultado — até chegar no valor de venda final.
+            Definidos no topo do orçamento e aplicados aqui automaticamente.
           </p>
         </div>
 
-        {!bloqueado && (
-          <form
-            action={adicionarEncargoComId}
-            className={`grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,0.7fr)_minmax(0,0.7fr)_auto] sm:items-end ${PAINEL}`}
-          >
-            <Field label="Nome do encargo" htmlFor={`${uid}-encargoNome`}>
-              <input id={`${uid}-encargoNome`} name="nome" placeholder="Ex: Margem, Nota Fiscal" required className={INPUT} />
-            </Field>
-            <Field label="Percentual (%)" htmlFor={`${uid}-encargoPct`}>
-              <input id={`${uid}-encargoPct`} name="percentual" type="number" step="0.01" min="0" required className={INPUT} />
-            </Field>
-            <Field label="Nível" htmlFor={`${uid}-encargoNivel`}>
-              <input
-                id={`${uid}-encargoNivel`}
-                name="nivel"
-                type="number"
-                step="1"
-                min="1"
-                defaultValue={proximoNivel}
-                title="Encargos do mesmo nível somam sobre a mesma base"
-                className={INPUT}
-              />
-            </Field>
-            <button type="submit" className={BTN_PRIMARY}>
-              Adicionar
-            </button>
-          </form>
-        )}
-
-        {ambiente.encargos.length === 0 ? (
-          <p className="text-body-md text-on-surface-variant">Nenhum encargo lançado.</p>
+        {encargos.length === 0 ? (
+          <p className="text-body-md text-on-surface-variant">Nenhum encargo lançado no orçamento.</p>
         ) : (
           <div className="flex flex-col divide-y divide-tertiary-fixed rounded-lg border border-tertiary-fixed">
             {resultado.niveis.map((nivelCalc) => (
@@ -462,26 +530,12 @@ function AmbienteCard({
                     base {formatarMoeda(nivelCalc.baseInicial)}
                   </span>
                 </div>
-                {ambiente.encargos
-                  .filter((e) => e.nivel === nivelCalc.nivel)
-                  .map((encargo) => {
-                    const removerEncargoComId = removerEncargoAction.bind(null, orcamentoId, encargo.id);
-                    return (
-                      <div key={encargo.id} className="flex items-center justify-between gap-2 text-body-md">
-                        <span className="text-on-background">{encargo.nome}</span>
-                        <div className="flex items-center gap-3">
-                          <span className="text-on-surface-variant">{encargo.percentual}%</span>
-                          {!bloqueado && (
-                            <form action={removerEncargoComId}>
-                              <button type="submit" className={BTN_TEXT_DANGER}>
-                                Remover
-                              </button>
-                            </form>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                {nivelCalc.encargos.map((encargo) => (
+                  <div key={encargo.nome} className="flex items-center justify-between gap-2 text-body-md">
+                    <span className="text-on-background">{encargo.nome}</span>
+                    <span className="text-on-surface-variant">{encargo.percentual}%</span>
+                  </div>
+                ))}
                 <Linha nome={`Subtotal (nível ${nivelCalc.nivel})`} valor={nivelCalc.subtotal} destaque />
               </div>
             ))}

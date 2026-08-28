@@ -21,13 +21,14 @@ export async function criarInsumoAction(formData: FormData) {
   const nome = String(formData.get("nome") ?? "").trim();
   const unidade = String(formData.get("unidade") ?? "").trim();
   const valorUnitario = numeroDeFormData(formData, "valorUnitario");
+  const percentualPerda = numeroDeFormData(formData, "percentualPerda");
   const categoria = categoriaDeFormData(formData);
 
   if (!nome || !unidade || valorUnitario <= 0) {
     throw new Error("Preencha nome, unidade e valor do insumo.");
   }
 
-  await prisma.insumo.create({ data: { nome, unidade, valorUnitario, categoria } });
+  await prisma.insumo.create({ data: { nome, unidade, valorUnitario, percentualPerda, categoria } });
 
   revalidatePath("/insumos");
   updateTag("insumos-ativos");
@@ -37,6 +38,7 @@ export async function atualizarInsumoAction(insumoId: string, formData: FormData
   const nome = String(formData.get("nome") ?? "").trim();
   const unidade = String(formData.get("unidade") ?? "").trim();
   const valorUnitario = numeroDeFormData(formData, "valorUnitario");
+  const percentualPerda = numeroDeFormData(formData, "percentualPerda");
   const categoria = categoriaDeFormData(formData);
 
   if (!nome || !unidade || valorUnitario <= 0) {
@@ -45,7 +47,7 @@ export async function atualizarInsumoAction(insumoId: string, formData: FormData
 
   await prisma.insumo.update({
     where: { id: insumoId },
-    data: { nome, unidade, valorUnitario, categoria },
+    data: { nome, unidade, valorUnitario, percentualPerda, categoria },
   });
 
   revalidatePath("/insumos");

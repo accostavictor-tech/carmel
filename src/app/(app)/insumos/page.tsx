@@ -22,6 +22,7 @@ type InsumoRow = {
   categoria: CategoriaInsumo;
   unidade: string;
   valorUnitario: number;
+  percentualPerda: number;
   ativo: boolean;
 };
 
@@ -51,7 +52,7 @@ export default async function InsumosPage() {
         </p>
       </div>
 
-      <form action={criarInsumoAction} className={`grid grid-cols-1 gap-3 sm:grid-cols-[1fr_2fr_1fr_1fr_auto] sm:items-end ${CARD}`}>
+      <form action={criarInsumoAction} className={`grid grid-cols-1 gap-3 sm:grid-cols-[1fr_2fr_1fr_1fr_1fr_auto] sm:items-end ${CARD}`}>
         <Field label="Categoria" htmlFor="novo-categoria">
           <select id="novo-categoria" name="categoria" defaultValue="MDF" className={INPUT}>
             {CATEGORIA_INSUMO_ORDEM.map((categoria) => (
@@ -75,6 +76,17 @@ export default async function InsumosPage() {
             step="0.01"
             min="0"
             required
+            className={INPUT}
+          />
+        </Field>
+        <Field label="Perda (%)" htmlFor="novo-perda">
+          <input
+            id="novo-perda"
+            name="percentualPerda"
+            type="number"
+            step="0.01"
+            min="0"
+            defaultValue={0}
             className={INPUT}
           />
         </Field>
@@ -117,6 +129,7 @@ function TabelaInsumos({ titulo, insumos }: { titulo: string; insumos: InsumoRow
               <th className={`px-4 py-3 font-normal ${FIELD_LABEL}`}>Nome</th>
               <th className={`px-4 py-3 font-normal ${FIELD_LABEL}`}>Unidade</th>
               <th className={`px-4 py-3 font-normal ${FIELD_LABEL}`}>Valor</th>
+              <th className={`px-4 py-3 font-normal ${FIELD_LABEL}`}>Perda (%)</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
@@ -151,6 +164,17 @@ function TabelaInsumos({ titulo, insumos }: { titulo: string; insumos: InsumoRow
                       step="0.01"
                       min="0"
                       defaultValue={insumo.valorUnitario}
+                      className={INPUT_TABLE}
+                    />
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <input
+                      form={formId}
+                      name="percentualPerda"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      defaultValue={insumo.percentualPerda}
                       className={INPUT_TABLE}
                     />
                   </td>
