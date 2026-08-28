@@ -25,6 +25,13 @@ enum CategoriaCusto {
   OUTROS
 }
 
+enum StatusOrcamento {
+  RASCUNHO
+  ENVIADO
+  APROVADO
+  REJEITADO
+}
+
 model Usuario {
   id        String   @id @default(cuid())
   nome      String
@@ -32,7 +39,8 @@ model Usuario {
   senhaHash String
   criadoEm  DateTime @default(now())
 
-  projetos Projeto[] @relation("ProjetoResponsavel")
+  projetos   Projeto[]   @relation("ProjetoResponsavel")
+  orcamentos Orcamento[] @relation("OrcamentoResponsavel")
 }
 
 model Projeto {
@@ -51,8 +59,9 @@ model Projeto {
   criadoEm          DateTime        @default(now())
   atualizadoEm      DateTime        @updatedAt
 
-  custos     Custo[]
-  orcamentos OrcamentoCusto[]
+  custos          Custo[]
+  orcamentosCusto OrcamentoCusto[]
+  orcamento       Orcamento?
 }
 
 model Custo {
@@ -73,6 +82,69 @@ model OrcamentoCusto {
   valor     Float
 
   @@unique([projetoId, categoria])
+}
+
+model Insumo {
+  id            String   @id @default(cuid())
+  nome          String
+  unidade       String // ex: m², mLinear, unid, par
+  valorUnitario Float
+  ativo         Boolean  @default(true)
+  criadoEm      DateTime @default(now())
+  atualizadoEm  DateTime @updatedAt
+
+  itens ItemAmbiente[]
+}
+
+model Orcamento {
+  id                String          @id @default(cuid())
+  nome              String
+  cliente           String
+  status            StatusOrcamento @default(RASCUNHO)
+  percentualImposto Float           @default(0)
+  responsavelId     String?
+  responsavel       Usuario?        @relation("OrcamentoResponsavel", fields: [responsavelId], references: [id])
+  projetoId         String?         @unique
+  projeto           Projeto?        @relation(fields: [projetoId], references: [id])
+  criadoEm          DateTime        @default(now())
+  atualizadoEm      DateTime        @updatedAt
+
+  ambientes Ambiente[]
+}
+
+model Ambiente {
+  id                      String @id @default(cuid())
+  orcamentoId             String
+  orcamento               Orcamento @relation(fields: [orcamentoId], references: [id], onDelete: Cascade)
+  nome                    String // ex: "Cozinha", "Armário superior"
+  percentualInsumosGerais Float  @default(0)
+  percentualLucro         Float  @default(0)
+  ordem                   Int    @default(0)
+
+  itens    ItemAmbiente[]
+  encargos EncargoAmbiente[]
+}
+
+model ItemAmbiente {
+  id            String    @id @default(cuid())
+  ambienteId    String
+  ambiente      Ambiente  @relation(fields: [ambienteId], references: [id], onDelete: Cascade)
+  insumoId      String?
+  insumo        Insumo?   @relation(fields: [insumoId], references: [id])
+  descricao     String
+  unidade       String
+  valorUnitario Float // snapshot do preço no momento do orçamento
+  quantidade    Float
+}
+
+model EncargoAmbiente {
+  id         String   @id @default(cuid())
+  ambienteId String
+  ambiente   Ambiente @relation(fields: [ambienteId], references: [id], onDelete: Cascade)
+  nome       String // ex: "Lane", "Margem", "Nota Fiscal"
+  percentual Float
+  nivel      Int      @default(1) // encargos do mesmo nível incidem sobre a mesma base e se somam; níveis cascateiam entre si
+  ordem      Int      @default(0)
 }
 
 model MetaMensal {

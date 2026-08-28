@@ -30,7 +30,7 @@ export default async function ProjetoDetalhePage({
     where: { id },
     include: {
       custos: { orderBy: { data: "desc" } },
-      orcamentos: true,
+      orcamentosCusto: true,
       responsavel: true,
     },
   });
@@ -43,8 +43,8 @@ export default async function ProjetoDetalhePage({
   const lucro = calcularLucro(projeto);
   const margem = calcularMargem(projeto);
   const atrasado = estaAtrasado(projeto);
-  const resumoCategorias = resumoPorCategoria(projeto.custos, projeto.orcamentos);
-  const orcadoTotal = totalOrcado(projeto.orcamentos);
+  const resumoCategorias = resumoPorCategoria(projeto.custos, projeto.orcamentosCusto);
+  const orcadoTotal = totalOrcado(projeto.orcamentosCusto);
 
   const adicionarCustoComId = adicionarCustoAction.bind(null, projeto.id);
   const removerCustoComId = removerCustoAction.bind(null, projeto.id);

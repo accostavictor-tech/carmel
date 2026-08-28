@@ -45,7 +45,7 @@ export async function criarProjetoAction(formData: FormData) {
       dataFechamento: new Date(dataFechamento),
       prazoEntrega: new Date(prazoEntrega),
       responsavelId: session.user.id,
-      orcamentos: { create: orcamentos },
+      orcamentosCusto: { create: orcamentos },
     },
   });
 
