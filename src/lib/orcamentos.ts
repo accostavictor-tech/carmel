@@ -1,4 +1,4 @@
-import { StatusOrcamento } from "@prisma/client";
+import { StatusOrcamento, CategoriaInsumo } from "@prisma/client";
 
 export const STATUS_ORCAMENTO_LABELS: Record<StatusOrcamento, string> = {
   RASCUNHO: "Rascunho",
@@ -13,6 +13,14 @@ export const STATUS_ORCAMENTO_ORDEM: StatusOrcamento[] = [
   "APROVADO",
   "REJEITADO",
 ];
+
+export const CATEGORIA_INSUMO_LABELS: Record<CategoriaInsumo, string> = {
+  MDF: "MDF",
+  FERRAGENS: "Ferragens",
+  OUTROS: "Outros",
+};
+
+export const CATEGORIA_INSUMO_ORDEM: CategoriaInsumo[] = ["MDF", "FERRAGENS", "OUTROS"];
 
 type ItemCalc = { valorUnitario: number; quantidade: number };
 type EncargoCalc = { nome: string; percentual: number; nivel: number; ordem: number };

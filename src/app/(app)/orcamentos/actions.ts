@@ -59,8 +59,6 @@ export async function atualizarImpostoOrcamentoAction(orcamentoId: string, formD
 
 export async function criarAmbienteAction(orcamentoId: string, formData: FormData) {
   const nome = String(formData.get("nome") ?? "").trim();
-  const percentualInsumosGerais = numeroDeFormData(formData, "percentualInsumosGerais");
-  const percentualLucro = numeroDeFormData(formData, "percentualLucro");
 
   if (!nome) {
     throw new Error("Dê um nome ao ambiente.");
@@ -69,13 +67,7 @@ export async function criarAmbienteAction(orcamentoId: string, formData: FormDat
   const quantidadeAtual = await prisma.ambiente.count({ where: { orcamentoId } });
 
   await prisma.ambiente.create({
-    data: {
-      orcamentoId,
-      nome,
-      percentualInsumosGerais,
-      percentualLucro,
-      ordem: quantidadeAtual,
-    },
+    data: { orcamentoId, nome, ordem: quantidadeAtual },
   });
 
   revalidatePath(`/orcamentos/${orcamentoId}`);
@@ -87,8 +79,6 @@ export async function atualizarAmbienteAction(
   formData: FormData
 ) {
   const nome = String(formData.get("nome") ?? "").trim();
-  const percentualInsumosGerais = numeroDeFormData(formData, "percentualInsumosGerais");
-  const percentualLucro = numeroDeFormData(formData, "percentualLucro");
 
   if (!nome) {
     throw new Error("Dê um nome ao ambiente.");
@@ -96,7 +86,23 @@ export async function atualizarAmbienteAction(
 
   await prisma.ambiente.update({
     where: { id: ambienteId },
-    data: { nome, percentualInsumosGerais, percentualLucro },
+    data: { nome },
+  });
+
+  revalidatePath(`/orcamentos/${orcamentoId}`);
+}
+
+export async function atualizarPercentuaisAmbienteAction(
+  orcamentoId: string,
+  ambienteId: string,
+  formData: FormData
+) {
+  const percentualInsumosGerais = numeroDeFormData(formData, "percentualInsumosGerais");
+  const percentualLucro = numeroDeFormData(formData, "percentualLucro");
+
+  await prisma.ambiente.update({
+    where: { id: ambienteId },
+    data: { percentualInsumosGerais, percentualLucro },
   });
 
   revalidatePath(`/orcamentos/${orcamentoId}`);

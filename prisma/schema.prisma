@@ -84,14 +84,21 @@ model OrcamentoCusto {
   @@unique([projetoId, categoria])
 }
 
+enum CategoriaInsumo {
+  MDF
+  FERRAGENS
+  OUTROS
+}
+
 model Insumo {
-  id            String   @id @default(cuid())
+  id            String          @id @default(cuid())
   nome          String
+  categoria     CategoriaInsumo @default(OUTROS)
   unidade       String // ex: m², mLinear, unid, par
   valorUnitario Float
-  ativo         Boolean  @default(true)
-  criadoEm      DateTime @default(now())
-  atualizadoEm  DateTime @updatedAt
+  ativo         Boolean         @default(true)
+  criadoEm      DateTime        @default(now())
+  atualizadoEm  DateTime        @updatedAt
 
   itens ItemAmbiente[]
 }
@@ -117,7 +124,7 @@ model Ambiente {
   orcamentoId             String
   orcamento               Orcamento @relation(fields: [orcamentoId], references: [id], onDelete: Cascade)
   nome                    String // ex: "Cozinha", "Armário superior"
-  percentualInsumosGerais Float  @default(0)
+  percentualInsumosGerais Float  @default(5)
   percentualLucro         Float  @default(0)
   ordem                   Int    @default(0)
 
