@@ -10,13 +10,12 @@ Sistema de gestão para a marcenaria, focado na dor mais urgente hoje: **acompan
 
 ## Deploy no Vercel (recomendado)
 
-1. **Criar o banco Postgres.** No painel do Vercel, dentro do projeto: aba **Storage → Create Database → Postgres** (é o Neon, tem plano gratuito). Isso cria automaticamente as variáveis `POSTGRES_PRISMA_URL` e `POSTGRES_URL_NON_POOLING`.
+1. **Criar o banco Postgres.** No painel do Vercel, dentro do projeto: aba **Storage → Connect Database** e crie/conecte um Postgres (ex: Prisma Postgres, Neon). Isso gera automaticamente uma variável de conexão (ex: `DATABASE_URL`, ou com prefixo customizado tipo `DATABASE_POSTGRES_URL`).
 
 2. **Importar o repositório.** Em [vercel.com/new](https://vercel.com/new), importe este repositório GitHub e selecione a branch desejada.
 
 3. **Configurar as variáveis de ambiente** do projeto no Vercel (Settings → Environment Variables):
-   - `DATABASE_URL` = valor de `POSTGRES_PRISMA_URL` (conexão via pooler)
-   - `DIRECT_URL` = valor de `POSTGRES_URL_NON_POOLING` (conexão direta, usada pelas migrations)
+   - `DATABASE_URL` = a connection string Postgres gerada pela integração (se o nome vier diferente, ex. `DATABASE_POSTGRES_URL`, copie o valor para uma variável chamada exatamente `DATABASE_URL`)
    - `AUTH_SECRET` = gere com `openssl rand -base64 32`
 
 4. **Deploy.** O build já roda `prisma migrate deploy` automaticamente (configurado em `package.json`), então o banco é criado/atualizado a cada deploy.
@@ -24,12 +23,12 @@ Sistema de gestão para a marcenaria, focado na dor mais urgente hoje: **acompan
 5. **Criar o usuário inicial.** As migrations não populam usuários — rode o seed uma vez apontando para o banco de produção:
 
    ```bash
-   DATABASE_URL="<POSTGRES_PRISMA_URL de produção>" DIRECT_URL="<POSTGRES_URL_NON_POOLING de produção>" npx prisma db seed
+   DATABASE_URL="<connection string de produção>" npx prisma db seed
    ```
 
    Isso cria o login `contato@marcenariacarmel.com.br` e a meta do mês atual.
 
-Alternativa: usar um Postgres de outro provedor (ex: [Neon](https://neon.tech) direto, [Supabase](https://supabase.com)) — o processo é o mesmo, só troca de onde vêm `DATABASE_URL`/`DIRECT_URL`.
+Alternativa: usar um Postgres de outro provedor (ex: [Neon](https://neon.tech) direto, [Supabase](https://supabase.com)) — o processo é o mesmo, só troca de onde vem a `DATABASE_URL`.
 
 ## Rodando localmente
 
@@ -41,7 +40,7 @@ Alternativa: usar um Postgres de outro provedor (ex: [Neon](https://neon.tech) d
    npm install
    ```
 
-3. Copie `.env.example` para `.env` e preencha `DATABASE_URL`, `DIRECT_URL` (podem ser a mesma string se não estiver usando pooler) e `AUTH_SECRET` (gere com `openssl rand -base64 32`).
+3. Copie `.env.example` para `.env` e preencha `DATABASE_URL` e `AUTH_SECRET` (gere com `openssl rand -base64 32`).
 
 4. Rode as migrations e o seed inicial:
 
