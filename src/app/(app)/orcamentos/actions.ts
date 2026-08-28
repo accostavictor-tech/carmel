@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { StatusOrcamento, CategoriaCusto } from "@prisma/client";
 import { totalInsumosOrcamento, totalOrcamento } from "@/lib/orcamentos";
+import { gerarLinkToken } from "@/lib/compartilhamento";
 
 function numeroDeFormData(formData: FormData, campo: string): number {
   const bruto = String(formData.get(campo) ?? "0").replace(",", ".");
@@ -183,6 +184,41 @@ export async function adicionarEncargoOrcamentoAction(orcamentoId: string, formD
 
 export async function removerEncargoOrcamentoAction(orcamentoId: string, encargoId: string) {
   await prisma.encargoOrcamento.delete({ where: { id: encargoId } });
+  revalidatePath(`/orcamentos/${orcamentoId}`);
+}
+
+export async function gerarLinkCompartilhamentoAction(orcamentoId: string) {
+  const orcamento = await prisma.orcamento.findUnique({ where: { id: orcamentoId } });
+  if (!orcamento) throw new Error("Orçamento não encontrado.");
+
+  await prisma.orcamento.update({
+    where: { id: orcamentoId },
+    data: {
+      linkToken: orcamento.linkToken ?? gerarLinkToken(),
+      compartilhadoEm: orcamento.compartilhadoEm ?? new Date(),
+      status: orcamento.status === StatusOrcamento.RASCUNHO ? StatusOrcamento.ENVIADO : orcamento.status,
+    },
+  });
+
+  revalidatePath(`/orcamentos/${orcamentoId}`);
+  revalidatePath("/orcamentos");
+}
+
+export async function renovarPrazoCompartilhamentoAction(orcamentoId: string) {
+  await prisma.orcamento.update({
+    where: { id: orcamentoId },
+    data: { compartilhadoEm: new Date() },
+  });
+
+  revalidatePath(`/orcamentos/${orcamentoId}`);
+}
+
+export async function revogarLinkCompartilhamentoAction(orcamentoId: string) {
+  await prisma.orcamento.update({
+    where: { id: orcamentoId },
+    data: { linkToken: null, compartilhadoEm: null },
+  });
+
   revalidatePath(`/orcamentos/${orcamentoId}`);
 }
 

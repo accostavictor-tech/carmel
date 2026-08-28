@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getInsumosAtivos } from "@/lib/insumos-cache";
-import { formatarMoeda } from "@/lib/format";
+import { formatarMoeda, formatarDataHora } from "@/lib/format";
 import { calcularAmbiente, totalOrcamento } from "@/lib/orcamentos";
+import { calcularValidade } from "@/lib/compartilhamento";
 import { CategoriaInsumo } from "@prisma/client";
 import {
   adicionarEncargoOrcamentoAction,
@@ -13,12 +15,16 @@ import {
   atualizarImpostoOrcamentoAction,
   atualizarPercentuaisAmbienteAction,
   criarAmbienteAction,
+  gerarLinkCompartilhamentoAction,
   removerAmbienteAction,
   removerEncargoOrcamentoAction,
   removerItemAction,
+  renovarPrazoCompartilhamentoAction,
+  revogarLinkCompartilhamentoAction,
 } from "../actions";
 import { StatusOrcamentoSelector } from "./StatusOrcamentoSelector";
 import { InsumoPicker } from "./InsumoPicker";
+import { CopyLinkButton } from "./CopyLinkButton";
 
 const CARD = "rounded-lg border border-tertiary-fixed bg-surface-container-lowest p-5 shadow-[0_10px_30px_rgba(29,45,61,0.05)]";
 const PAINEL = "rounded-lg border border-tertiary-fixed bg-surface-container-low p-4";
@@ -95,7 +101,7 @@ export default async function OrcamentoDetalhePage({
 }) {
   const { id } = await params;
 
-  const [orcamento, insumos] = await Promise.all([
+  const [orcamento, insumos, hdrs] = await Promise.all([
     prisma.orcamento.findUnique({
       where: { id },
       include: {
@@ -104,9 +110,12 @@ export default async function OrcamentoDetalhePage({
           include: { itens: true },
         },
         encargos: { orderBy: { ordem: "asc" } },
+        visualizacoes: { orderBy: { criadoEm: "desc" }, take: 10 },
+        _count: { select: { visualizacoes: true } },
       },
     }),
     getInsumosAtivos(),
+    headers(),
   ]);
 
   if (!orcamento) notFound();
@@ -119,7 +128,15 @@ export default async function OrcamentoDetalhePage({
   const aprovarComId = aprovarOrcamentoAction.bind(null, orcamento.id);
   const atualizarImpostoComId = atualizarImpostoOrcamentoAction.bind(null, orcamento.id);
   const adicionarEncargoComId = adicionarEncargoOrcamentoAction.bind(null, orcamento.id);
+  const gerarLinkComId = gerarLinkCompartilhamentoAction.bind(null, orcamento.id);
+  const renovarPrazoComId = renovarPrazoCompartilhamentoAction.bind(null, orcamento.id);
+  const revogarLinkComId = revogarLinkCompartilhamentoAction.bind(null, orcamento.id);
   const proximoNivelEncargo = orcamento.encargos.reduce((max, e) => Math.max(max, e.nivel), 0) + 1;
+
+  const protocolo = hdrs.get("x-forwarded-proto") ?? "https";
+  const host = hdrs.get("host");
+  const linkPublico = orcamento.linkToken ? `${protocolo}://${host}/orcamento/${orcamento.linkToken}` : null;
+  const validade = orcamento.compartilhadoEm ? calcularValidade(orcamento.compartilhadoEm) : null;
 
   return (
     <div className="flex flex-col gap-8">
@@ -169,6 +186,79 @@ export default async function OrcamentoDetalhePage({
             )}
           </form>
         </div>
+      </div>
+
+      <div className={`flex flex-col gap-4 ${CARD}`}>
+        <p className={LABEL}>Compartilhar com o cliente</p>
+
+        {!linkPublico ? (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-body-md text-on-surface-variant">
+              Gere um link público para o cliente ver este orçamento. Cada abertura fica registrada
+              aqui, com data e hora.
+            </p>
+            <form action={gerarLinkComId}>
+              <button type="submit" className={BTN_PRIMARY}>
+                Gerar link
+              </button>
+            </form>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <CopyLinkButton link={linkPublico} />
+
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-body-md">
+              {validade && (
+                <span
+                  className={
+                    validade.expirado
+                      ? "font-medium text-error"
+                      : validade.diasRestantes <= 3
+                        ? "font-medium text-secondary"
+                        : "text-on-surface-variant"
+                  }
+                >
+                  {validade.expirado
+                    ? `Orçamento expirado em ${formatarDataHora(validade.validoAte)}`
+                    : `Válido até ${formatarDataHora(validade.validoAte)} · ${validade.diasRestantes} ${validade.diasRestantes === 1 ? "dia" : "dias"} restantes`}
+                </span>
+              )}
+              <span className="text-on-surface-variant">
+                {orcamento._count.visualizacoes === 0
+                  ? "Ainda não foi aberto pelo cliente"
+                  : `Aberto ${orcamento._count.visualizacoes}x · última vez em ${formatarDataHora(orcamento.visualizacoes[0].criadoEm)}`}
+              </span>
+            </div>
+
+            {orcamento.visualizacoes.length > 0 && (
+              <details className="text-body-md">
+                <summary className="cursor-pointer text-primary hover:underline">
+                  Ver histórico de aberturas
+                </summary>
+                <ul className="mt-2 flex flex-col gap-1 text-on-surface-variant">
+                  {orcamento.visualizacoes.map((v) => (
+                    <li key={v.id}>{formatarDataHora(v.criadoEm)}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+
+            {!jaConvertido && (
+              <div className="flex flex-wrap gap-4">
+                <form action={renovarPrazoComId}>
+                  <button type="submit" className={BTN_TEXT}>
+                    Renovar prazo (+21 dias)
+                  </button>
+                </form>
+                <form action={revogarLinkComId}>
+                  <button type="submit" className={BTN_TEXT_DANGER}>
+                    Revogar link
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {jaConvertido ? (

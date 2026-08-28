@@ -114,11 +114,23 @@ model Orcamento {
   responsavel       Usuario?        @relation("OrcamentoResponsavel", fields: [responsavelId], references: [id])
   projetoId         String?         @unique
   projeto           Projeto?        @relation(fields: [projetoId], references: [id])
+  linkToken         String?         @unique // token do link público de compartilhamento com o cliente
+  compartilhadoEm   DateTime? // início da contagem de validade (21 dias)
   criadoEm          DateTime        @default(now())
   atualizadoEm      DateTime        @updatedAt
 
-  ambientes Ambiente[]
-  encargos  EncargoOrcamento[]
+  ambientes     Ambiente[]
+  encargos      EncargoOrcamento[]
+  visualizacoes VisualizacaoOrcamento[]
+}
+
+// Registro de cada abertura do link público pelo cliente, para o "recibo de leitura".
+model VisualizacaoOrcamento {
+  id          String    @id @default(cuid())
+  orcamentoId String
+  orcamento   Orcamento @relation(fields: [orcamentoId], references: [id], onDelete: Cascade)
+  criadoEm    DateTime  @default(now())
+  userAgent   String?
 }
 
 model Ambiente {
