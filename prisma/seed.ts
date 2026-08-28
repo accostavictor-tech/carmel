@@ -4,20 +4,17 @@ import { PrismaClient } from "../src/generated/prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  const senhaHashPadrao = await bcrypt.hash("carmel123", 10);
+  const senhaHash = await bcrypt.hash("120471", 10);
 
-  const socios = [
-    { nome: "Sócio 1", email: "socio1@marcenariacarmel.com.br" },
-    { nome: "Sócio 2", email: "socio2@marcenariacarmel.com.br" },
-  ];
-
-  for (const socio of socios) {
-    await prisma.usuario.upsert({
-      where: { email: socio.email },
-      update: {},
-      create: { ...socio, senhaHash: senhaHashPadrao },
-    });
-  }
+  await prisma.usuario.upsert({
+    where: { email: "contato@marcenariacarmel.com.br" },
+    update: { senhaHash },
+    create: {
+      nome: "Marcenaria Carmel",
+      email: "contato@marcenariacarmel.com.br",
+      senhaHash,
+    },
+  });
 
   const hoje = new Date();
   await prisma.metaMensal.upsert({
@@ -30,7 +27,7 @@ async function main() {
     },
   });
 
-  console.log("Seed concluído. Senha padrão dos sócios: carmel123 (troque depois do primeiro login).");
+  console.log("Seed concluído. Login: contato@marcenariacarmel.com.br");
 }
 
 main()

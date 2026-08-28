@@ -6,7 +6,7 @@ Sistema de gestão para a marcenaria, focado na dor mais urgente hoje: **acompan
 
 - Next.js (App Router) + TypeScript + Tailwind CSS
 - Prisma + PostgreSQL
-- NextAuth (Credentials) para login dos sócios
+- NextAuth (Credentials) para login
 
 ## Deploy no Vercel (recomendado)
 
@@ -21,13 +21,13 @@ Sistema de gestão para a marcenaria, focado na dor mais urgente hoje: **acompan
 
 4. **Deploy.** O build já roda `prisma migrate deploy` automaticamente (configurado em `package.json`), então o banco é criado/atualizado a cada deploy.
 
-5. **Criar os usuários iniciais.** As migrations não populam usuários — rode o seed uma vez apontando para o banco de produção:
+5. **Criar o usuário inicial.** As migrations não populam usuários — rode o seed uma vez apontando para o banco de produção:
 
    ```bash
    DATABASE_URL="<POSTGRES_PRISMA_URL de produção>" DIRECT_URL="<POSTGRES_URL_NON_POOLING de produção>" npx prisma db seed
    ```
 
-   Isso cria os 2 sócios (senha padrão `carmel123` — **troque assim que possível**, ainda não há tela de troca de senha) e a meta do mês atual.
+   Isso cria o login `contato@marcenariacarmel.com.br` e a meta do mês atual.
 
 Alternativa: usar um Postgres de outro provedor (ex: [Neon](https://neon.tech) direto, [Supabase](https://supabase.com)) — o processo é o mesmo, só troca de onde vêm `DATABASE_URL`/`DIRECT_URL`.
 
@@ -56,9 +56,7 @@ Alternativa: usar um Postgres de outro provedor (ex: [Neon](https://neon.tech) d
    npm run dev
    ```
 
-6. Acesse `http://localhost:3000/login`. Login padrão criado pelo seed:
-   - `socio1@marcenariacarmel.com.br` / `carmel123`
-   - `socio2@marcenariacarmel.com.br` / `carmel123`
+6. Acesse `http://localhost:3000/login`. Login criado pelo seed: `contato@marcenariacarmel.com.br`.
 
 ## O que o MVP cobre
 
