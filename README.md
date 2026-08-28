@@ -5,37 +5,60 @@ Sistema de gestão para a marcenaria, focado na dor mais urgente hoje: **acompan
 ## Stack
 
 - Next.js (App Router) + TypeScript + Tailwind CSS
-- Prisma + SQLite (fácil de rodar localmente, migra para Postgres depois se necessário)
+- Prisma + PostgreSQL
 - NextAuth (Credentials) para login dos sócios
+
+## Deploy no Vercel (recomendado)
+
+1. **Criar o banco Postgres.** No painel do Vercel, dentro do projeto: aba **Storage → Create Database → Postgres** (é o Neon, tem plano gratuito). Isso cria automaticamente as variáveis `POSTGRES_PRISMA_URL` e `POSTGRES_URL_NON_POOLING`.
+
+2. **Importar o repositório.** Em [vercel.com/new](https://vercel.com/new), importe este repositório GitHub e selecione a branch desejada.
+
+3. **Configurar as variáveis de ambiente** do projeto no Vercel (Settings → Environment Variables):
+   - `DATABASE_URL` = valor de `POSTGRES_PRISMA_URL` (conexão via pooler)
+   - `DIRECT_URL` = valor de `POSTGRES_URL_NON_POOLING` (conexão direta, usada pelas migrations)
+   - `AUTH_SECRET` = gere com `openssl rand -base64 32`
+
+4. **Deploy.** O build já roda `prisma migrate deploy` automaticamente (configurado em `package.json`), então o banco é criado/atualizado a cada deploy.
+
+5. **Criar os usuários iniciais.** As migrations não populam usuários — rode o seed uma vez apontando para o banco de produção:
+
+   ```bash
+   DATABASE_URL="<POSTGRES_PRISMA_URL de produção>" DIRECT_URL="<POSTGRES_URL_NON_POOLING de produção>" npx prisma db seed
+   ```
+
+   Isso cria os 2 sócios (senha padrão `carmel123` — **troque assim que possível**, ainda não há tela de troca de senha) e a meta do mês atual.
+
+Alternativa: usar um Postgres de outro provedor (ex: [Neon](https://neon.tech) direto, [Supabase](https://supabase.com)) — o processo é o mesmo, só troca de onde vêm `DATABASE_URL`/`DIRECT_URL`.
 
 ## Rodando localmente
 
-1. Instale as dependências:
+1. Tenha um Postgres acessível (local via Docker, ou um banco na nuvem como Neon).
+
+2. Instale as dependências:
 
    ```bash
    npm install
    ```
 
-2. Copie `.env.example` para `.env` e preencha `DATABASE_URL` (caminho absoluto, veja o comentário no arquivo) e `AUTH_SECRET` (gere com `openssl rand -base64 32`).
+3. Copie `.env.example` para `.env` e preencha `DATABASE_URL`, `DIRECT_URL` (podem ser a mesma string se não estiver usando pooler) e `AUTH_SECRET` (gere com `openssl rand -base64 32`).
 
-3. Rode as migrations e o seed inicial (cria os 2 usuários sócios e a meta do mês atual):
+4. Rode as migrations e o seed inicial:
 
    ```bash
    npx prisma migrate dev
    npx prisma db seed
    ```
 
-4. Suba o servidor:
+5. Suba o servidor:
 
    ```bash
    npm run dev
    ```
 
-5. Acesse `http://localhost:3000/login`. Login padrão criado pelo seed:
+6. Acesse `http://localhost:3000/login`. Login padrão criado pelo seed:
    - `socio1@marcenariacarmel.com.br` / `carmel123`
    - `socio2@marcenariacarmel.com.br` / `carmel123`
-
-   **Troque essas senhas** assim que possível (ainda não há tela de troca de senha — pode ser feito diretamente no banco por enquanto).
 
 ## O que o MVP cobre
 
