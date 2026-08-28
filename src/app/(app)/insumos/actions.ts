@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { CategoriaInsumo } from "@prisma/client";
 
@@ -30,6 +30,7 @@ export async function criarInsumoAction(formData: FormData) {
   await prisma.insumo.create({ data: { nome, unidade, valorUnitario, categoria } });
 
   revalidatePath("/insumos");
+  updateTag("insumos-ativos");
 }
 
 export async function atualizarInsumoAction(insumoId: string, formData: FormData) {
@@ -48,14 +49,17 @@ export async function atualizarInsumoAction(insumoId: string, formData: FormData
   });
 
   revalidatePath("/insumos");
+  updateTag("insumos-ativos");
 }
 
 export async function arquivarInsumoAction(insumoId: string) {
   await prisma.insumo.update({ where: { id: insumoId }, data: { ativo: false } });
   revalidatePath("/insumos");
+  updateTag("insumos-ativos");
 }
 
 export async function reativarInsumoAction(insumoId: string) {
   await prisma.insumo.update({ where: { id: insumoId }, data: { ativo: true } });
   revalidatePath("/insumos");
+  updateTag("insumos-ativos");
 }

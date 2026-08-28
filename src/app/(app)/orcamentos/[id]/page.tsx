@@ -1,13 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getInsumosAtivos } from "@/lib/insumos-cache";
 import { formatarMoeda } from "@/lib/format";
-import {
-  calcularAmbiente,
-  totalOrcamento,
-  CATEGORIA_INSUMO_LABELS,
-  CATEGORIA_INSUMO_ORDEM,
-} from "@/lib/orcamentos";
+import { calcularAmbiente, totalOrcamento } from "@/lib/orcamentos";
 import { CategoriaInsumo } from "@prisma/client";
 import {
   adicionarEncargoAction,
@@ -22,6 +18,7 @@ import {
   removerItemAction,
 } from "../actions";
 import { StatusOrcamentoSelector } from "./StatusOrcamentoSelector";
+import { InsumoPicker } from "./InsumoPicker";
 
 const CARD = "rounded-lg border border-tertiary-fixed bg-surface-container-lowest p-5 shadow-[0_10px_30px_rgba(29,45,61,0.05)]";
 const PAINEL = "rounded-lg border border-tertiary-fixed bg-surface-container-low p-4";
@@ -93,7 +90,7 @@ export default async function OrcamentoDetalhePage({
         },
       },
     }),
-    prisma.insumo.findMany({ where: { ativo: true }, orderBy: { nome: "asc" } }),
+    getInsumosAtivos(),
   ]);
 
   if (!orcamento) notFound();
@@ -172,13 +169,14 @@ export default async function OrcamentoDetalhePage({
       )}
 
       <div className="flex flex-col gap-6">
-        {orcamento.ambientes.map((ambiente) => (
+        {orcamento.ambientes.map((ambiente, index) => (
           <AmbienteCard
             key={ambiente.id}
             orcamentoId={orcamento.id}
             ambiente={ambiente}
             insumos={insumos}
             bloqueado={jaConvertido}
+            abertoPorPadrao={index === orcamento.ambientes.length - 1}
           />
         ))}
       </div>
@@ -208,11 +206,13 @@ function AmbienteCard({
   ambiente,
   insumos,
   bloqueado,
+  abertoPorPadrao,
 }: {
   orcamentoId: string;
   ambiente: Ambiente;
   insumos: Insumo[];
   bloqueado: boolean;
+  abertoPorPadrao: boolean;
 }) {
   const resultado = calcularAmbiente(ambiente);
   const proximoNivel = ambiente.encargos.reduce((max, e) => Math.max(max, e.nivel), 0) + 1;
@@ -225,7 +225,28 @@ function AmbienteCard({
   const adicionarEncargoComId = adicionarEncargoAction.bind(null, orcamentoId, ambiente.id);
 
   return (
-    <section className={`flex flex-col gap-6 ${CARD}`}>
+    <details
+      className="group overflow-hidden rounded-lg border border-tertiary-fixed bg-surface-container-lowest shadow-[0_10px_30px_rgba(29,45,61,0.05)]"
+      open={abertoPorPadrao}
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 [&::-webkit-details-marker]:hidden">
+        <div className="flex min-w-0 items-center gap-3">
+          <svg
+            viewBox="0 0 20 20"
+            fill="none"
+            className="h-4 w-4 shrink-0 text-on-surface-variant transition-transform group-open:rotate-90"
+          >
+            <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span className="truncate font-display text-lg font-semibold text-on-background">{ambiente.nome}</span>
+          <span className="hidden shrink-0 text-body-md text-on-surface-variant sm:inline">
+            {ambiente.itens.length} {ambiente.itens.length === 1 ? "item" : "itens"}
+          </span>
+        </div>
+        <span className="shrink-0 text-lg font-semibold text-primary">{formatarMoeda(resultado.totalFinal)}</span>
+      </summary>
+
+      <div className="flex flex-col gap-6 border-t border-tertiary-fixed p-5">
       {/* Nome do ambiente */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <form action={atualizarComId} className="flex flex-1 items-end gap-2">
@@ -262,22 +283,12 @@ function AmbienteCard({
           <form action={adicionarItemComId} className={`flex flex-col gap-4 ${PAINEL}`}>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,0.6fr)_auto] sm:items-end">
               <Field label="Insumo do catálogo" htmlFor={`${uid}-insumoId`}>
-                <select id={`${uid}-insumoId`} name="insumoId" className={`${INPUT} min-w-0`} defaultValue="">
-                  <option value="">— item avulso (preencher abaixo) —</option>
-                  {CATEGORIA_INSUMO_ORDEM.map((categoria) => {
-                    const doGrupo = insumos.filter((i) => i.categoria === categoria);
-                    if (doGrupo.length === 0) return null;
-                    return (
-                      <optgroup key={categoria} label={CATEGORIA_INSUMO_LABELS[categoria]}>
-                        {doGrupo.map((insumo) => (
-                          <option key={insumo.id} value={insumo.id}>
-                            {insumo.nome} ({insumo.unidade}) · {formatarMoeda(insumo.valorUnitario)}
-                          </option>
-                        ))}
-                      </optgroup>
-                    );
-                  })}
-                </select>
+                <InsumoPicker
+                  key={`picker-${ambiente.id}-${ambiente.itens.length}`}
+                  id={`${uid}-insumoId`}
+                  name="insumoId"
+                  insumos={insumos}
+                />
               </Field>
               <Field label="Quantidade" htmlFor={`${uid}-quantidade`}>
                 <input
@@ -481,7 +492,8 @@ function AmbienteCard({
           <Linha nome="Valor de venda do ambiente" valor={resultado.totalFinal} destaque grande />
         </div>
       </div>
-    </section>
+      </div>
+    </details>
   );
 }
 
