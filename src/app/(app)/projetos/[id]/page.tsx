@@ -8,7 +8,7 @@ import {
   estaAtrasado,
   totalCustos,
 } from "@/lib/projetos";
-import { CategoriaCusto } from "@/generated/prisma/enums";
+import { CategoriaCusto } from "@prisma/client";
 import { adicionarCustoAction, removerCustoAction } from "../actions";
 import { StatusSelector } from "./StatusSelector";
 

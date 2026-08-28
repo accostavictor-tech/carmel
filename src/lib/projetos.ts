@@ -1,4 +1,4 @@
-import { StatusProducao, CategoriaCusto } from "@/generated/prisma/enums";
+import { StatusProducao, CategoriaCusto } from "@prisma/client";
 
 export const STATUS_LABELS: Record<StatusProducao, string> = {
   FILA: "Fila",

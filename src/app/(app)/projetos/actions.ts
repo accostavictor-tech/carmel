@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { StatusProducao, CategoriaCusto } from "@/generated/prisma/enums";
+import { StatusProducao, CategoriaCusto } from "@prisma/client";
 
 function numeroDeFormData(formData: FormData, campo: string): number {
   const bruto = String(formData.get(campo) ?? "0").replace(",", ".");

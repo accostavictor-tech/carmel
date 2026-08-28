@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { StatusProducao } from "@/generated/prisma/enums";
+import { StatusProducao } from "@prisma/client";
 import { STATUS_LABELS, STATUS_ORDEM } from "@/lib/projetos";
 import { atualizarStatusAction } from "../actions";
 
