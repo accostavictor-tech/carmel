@@ -607,15 +607,17 @@ function AmbienteCard({
               className={`${INPUT} w-32`}
             />
           </Field>
-          <Field label="Lucro (%)" htmlFor={`${uid}-lucro`}>
+          <Field label="Margem de lucro (%)" htmlFor={`${uid}-lucro`}>
             <input
               id={`${uid}-lucro`}
               name="percentualLucro"
               type="number"
               step="0.01"
               min="0"
+              max="99"
               defaultValue={ambiente.percentualLucro}
               disabled={bloqueado}
+              title="% do preço de venda que é lucro — não markup sobre o custo"
               className={`${INPUT} w-32`}
             />
           </Field>
@@ -632,7 +634,7 @@ function AmbienteCard({
             valor={resultado.totalCompra - resultado.totalItens}
           />
           <Linha nome="Total compra" valor={resultado.totalCompra} destaque />
-          <Linha nome={`+ Lucro (${ambiente.percentualLucro}%)`} valor={resultado.totalVenda - resultado.totalCompra} />
+          <Linha nome={`+ Margem de lucro (${ambiente.percentualLucro}%)`} valor={resultado.totalVenda - resultado.totalCompra} />
           <Linha nome="Total venda" valor={resultado.totalVenda} destaque />
         </div>
       </div>

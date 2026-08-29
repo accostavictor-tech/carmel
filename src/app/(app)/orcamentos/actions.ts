@@ -132,7 +132,7 @@ export async function atualizarPercentuaisAmbienteAction(
   formData: FormData
 ) {
   const percentualInsumosGerais = numeroDeFormData(formData, "percentualInsumosGerais");
-  const percentualLucro = numeroDeFormData(formData, "percentualLucro");
+  const percentualLucro = Math.min(numeroDeFormData(formData, "percentualLucro"), 99.99);
 
   await prisma.ambiente.update({
     where: { id: ambienteId },

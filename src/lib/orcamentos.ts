@@ -63,7 +63,11 @@ export function totalItensAmbiente(itens: ItemCalc[]): number {
 export function calcularAmbiente(ambiente: AmbienteCalc, encargos: EncargoCalc[]): ResultadoAmbiente {
   const totalItens = totalItensAmbiente(ambiente.itens);
   const totalCompra = totalItens + (totalItens * ambiente.percentualInsumosGerais) / 100;
-  const totalVenda = totalCompra + (totalCompra * ambiente.percentualLucro) / 100;
+
+  // "Lucro" é margem de lucro sobre o preço de venda (não markup sobre o custo):
+  // margem = (venda - custo) / venda  →  venda = custo / (1 - margem/100).
+  const margemLucro = Math.min(Math.max(ambiente.percentualLucro, 0), 99.99);
+  const totalVenda = margemLucro > 0 ? totalCompra / (1 - margemLucro / 100) : totalCompra;
 
   const numerosNiveis = [...new Set(encargos.map((e) => e.nivel))].sort((a, b) => a - b);
 

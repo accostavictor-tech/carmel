@@ -92,6 +92,17 @@ export default async function OrcamentoPublicoPage({
           </div>
         )}
 
+        <ul className="flex flex-col gap-1.5 text-body-md text-on-surface-variant">
+          <li>
+            ● Não estão inclusos neste orçamento serviços e adaptações elétricas e/ou hidráulicas.
+          </li>
+          <li>
+            ● Não estão inclusos neste orçamento serviços de desmontagens de móveis que estejam
+            ocupando o local onde será instalado o novo, podendo ser acordado previamente este
+            serviço à parte.
+          </li>
+        </ul>
+
         <div className="flex flex-col gap-6 rounded-lg border border-tertiary-fixed bg-surface-container-lowest shadow-[0_10px_30px_rgba(29,45,61,0.05)]">
           {orcamento.ambientes.map((ambiente) => {
             const resultado = calcularAmbiente(ambiente, orcamento.encargos);
