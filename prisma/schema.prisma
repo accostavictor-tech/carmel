@@ -107,7 +107,10 @@ model Insumo {
 model Orcamento {
   id                String          @id @default(cuid())
   nome              String
-  cliente           String
+  cliente           String // nome do contato
+  clienteEmpresa    String?
+  clienteTelefone   String?
+  clienteEmail      String?
   status            StatusOrcamento @default(RASCUNHO)
   percentualImposto Float           @default(0)
   responsavelId     String?
@@ -134,13 +137,14 @@ model VisualizacaoOrcamento {
 }
 
 model Ambiente {
-  id                      String @id @default(cuid())
+  id                      String  @id @default(cuid())
   orcamentoId             String
   orcamento               Orcamento @relation(fields: [orcamentoId], references: [id], onDelete: Cascade)
   nome                    String // ex: "Cozinha", "Armário superior"
-  percentualInsumosGerais Float  @default(5)
-  percentualLucro         Float  @default(0)
-  ordem                   Int    @default(0)
+  descricao               String? // texto mostrado ao cliente no link público, no lugar da lista de materiais
+  percentualInsumosGerais Float   @default(5)
+  percentualLucro         Float   @default(0)
+  ordem                   Int     @default(0)
 
   itens ItemAmbiente[]
 }

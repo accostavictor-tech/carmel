@@ -12,6 +12,7 @@ import {
   adicionarItemAction,
   aprovarOrcamentoAction,
   atualizarAmbienteAction,
+  atualizarContatoOrcamentoAction,
   atualizarImpostoOrcamentoAction,
   atualizarPercentuaisAmbienteAction,
   criarAmbienteAction,
@@ -50,6 +51,7 @@ type Encargo = { id: string; nome: string; percentual: number; nivel: number; or
 type Ambiente = {
   id: string;
   nome: string;
+  descricao: string | null;
   percentualInsumosGerais: number;
   percentualLucro: number;
   itens: {
@@ -126,6 +128,7 @@ export default async function OrcamentoDetalhePage({
 
   const criarAmbienteComId = criarAmbienteAction.bind(null, orcamento.id);
   const aprovarComId = aprovarOrcamentoAction.bind(null, orcamento.id);
+  const atualizarContatoComId = atualizarContatoOrcamentoAction.bind(null, orcamento.id);
   const atualizarImpostoComId = atualizarImpostoOrcamentoAction.bind(null, orcamento.id);
   const adicionarEncargoComId = adicionarEncargoOrcamentoAction.bind(null, orcamento.id);
   const gerarLinkComId = gerarLinkCompartilhamentoAction.bind(null, orcamento.id);
@@ -156,36 +159,64 @@ export default async function OrcamentoDetalhePage({
           )}
         </div>
 
-        <div className="flex flex-wrap items-end gap-4">
-          <Field label="Status">
-            <StatusOrcamentoSelector
-              orcamentoId={orcamento.id}
-              statusAtual={orcamento.status}
-              disabled={jaConvertido}
-            />
-          </Field>
+        <Field label="Status">
+          <StatusOrcamentoSelector
+            orcamentoId={orcamento.id}
+            statusAtual={orcamento.status}
+            disabled={jaConvertido}
+          />
+        </Field>
+      </div>
 
-          <form action={atualizarImpostoComId} className="flex items-end gap-2">
-            <Field label="Imposto/comissão (%)" htmlFor="percentualImposto">
+      <div className={`flex flex-col gap-4 ${CARD}`}>
+        <p className={LABEL}>Contato</p>
+        <form action={atualizarContatoComId} className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Nome *" htmlFor="contato-nome">
               <input
-                id="percentualImposto"
-                name="percentualImposto"
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                defaultValue={orcamento.percentualImposto}
+                id="contato-nome"
+                name="cliente"
+                defaultValue={orcamento.cliente}
+                required
                 disabled={jaConvertido}
-                className={`${INPUT} w-28`}
+                className={INPUT}
               />
             </Field>
-            {!jaConvertido && (
-              <button type="submit" className={`${BTN_TEXT} h-10`}>
-                Salvar
-              </button>
-            )}
-          </form>
-        </div>
+            <Field label="Empresa" htmlFor="contato-empresa">
+              <input
+                id="contato-empresa"
+                name="clienteEmpresa"
+                defaultValue={orcamento.clienteEmpresa ?? ""}
+                disabled={jaConvertido}
+                className={INPUT}
+              />
+            </Field>
+            <Field label="Telefone" htmlFor="contato-telefone">
+              <input
+                id="contato-telefone"
+                name="clienteTelefone"
+                defaultValue={orcamento.clienteTelefone ?? ""}
+                disabled={jaConvertido}
+                className={INPUT}
+              />
+            </Field>
+            <Field label="E-mail" htmlFor="contato-email">
+              <input
+                id="contato-email"
+                name="clienteEmail"
+                type="email"
+                defaultValue={orcamento.clienteEmail ?? ""}
+                disabled={jaConvertido}
+                className={INPUT}
+              />
+            </Field>
+          </div>
+          {!jaConvertido && (
+            <button type="submit" className={`${BTN_TEXT} self-start`}>
+              Salvar contato
+            </button>
+          )}
+        </form>
       </div>
 
       <div className={`flex flex-col gap-4 ${CARD}`}>
@@ -278,13 +309,35 @@ export default async function OrcamentoDetalhePage({
 
       <div className={`flex flex-col gap-4 ${CARD}`}>
         <div className="flex flex-col gap-1.5">
-          <p className={LABEL}>Comissões e encargos do orçamento</p>
+          <p className={LABEL}>Impostos e comissões do orçamento</p>
           <p className="text-body-md text-on-surface-variant">
-            Definidos uma única vez e aplicados sobre o valor de venda de todos os ambientes.
-            Encargos com o mesmo nível incidem sobre a mesma base e se somam; o próximo nível
-            cascateia sobre o resultado.
+            Definidos uma única vez aqui e aplicados sobre o valor de venda de todos os ambientes.
+            Adicione uma comissão por pessoa (vendedor, sócio, etc.) — pode ser nenhuma, uma ou
+            várias. Encargos com o mesmo nível incidem sobre a mesma base e se somam; o próximo
+            nível cascateia sobre o resultado.
           </p>
         </div>
+
+        <form action={atualizarImpostoComId} className={`flex items-end gap-3 ${PAINEL}`}>
+          <Field label="Imposto (%)" htmlFor="percentualImposto">
+            <input
+              id="percentualImposto"
+              name="percentualImposto"
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              defaultValue={orcamento.percentualImposto}
+              disabled={jaConvertido}
+              className={`${INPUT} w-32`}
+            />
+          </Field>
+          {!jaConvertido && (
+            <button type="submit" className={`${BTN_TEXT} h-10`}>
+              Salvar
+            </button>
+          )}
+        </form>
 
         {!jaConvertido && (
           <form
@@ -423,10 +476,20 @@ function AmbienteCard({
       </summary>
 
       <div className="flex flex-col gap-6 border-t border-tertiary-fixed p-5">
-      {/* Nome do ambiente */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <form action={atualizarComId} className="flex flex-1 items-end gap-2">
-          <Field label="Ambiente" htmlFor={`${uid}-nome`} className="flex-1 max-w-sm">
+      {/* Nome e descrição do ambiente */}
+      <div className="flex flex-col gap-3">
+        <div className="flex justify-end">
+          {!bloqueado && (
+            <form action={removerAmbienteComId}>
+              <button type="submit" className={`${BTN_TEXT_DANGER} h-10`}>
+                Remover ambiente
+              </button>
+            </form>
+          )}
+        </div>
+
+        <form action={atualizarComId} className="flex flex-col gap-3">
+          <Field label="Ambiente" htmlFor={`${uid}-nome`} className="max-w-sm">
             <input
               id={`${uid}-nome`}
               name="nome"
@@ -435,20 +498,25 @@ function AmbienteCard({
               className={`${INPUT} font-display font-semibold`}
             />
           </Field>
+
+          <Field label="Descrição (aparece no link do cliente, no lugar da lista de materiais)" htmlFor={`${uid}-descricao`}>
+            <textarea
+              id={`${uid}-descricao`}
+              name="descricao"
+              rows={3}
+              defaultValue={ambiente.descricao ?? ""}
+              disabled={bloqueado}
+              placeholder="Ex: Painel com 2 portas pivotantes em MDF Nogueira Imperial (Flora)"
+              className={`${INPUT} h-auto resize-y py-2`}
+            />
+          </Field>
+
           {!bloqueado && (
-            <button type="submit" className={`${BTN_TEXT} h-10`}>
+            <button type="submit" className={`${BTN_TEXT} self-start`}>
               Salvar
             </button>
           )}
         </form>
-
-        {!bloqueado && (
-          <form action={removerAmbienteComId}>
-            <button type="submit" className={`${BTN_TEXT_DANGER} h-10`}>
-              Remover ambiente
-            </button>
-          </form>
-        )}
       </div>
 
       {/* 1. Materiais */}
@@ -481,36 +549,6 @@ function AmbienteCard({
                 Adicionar
               </button>
             </div>
-
-            <div className="grid grid-cols-1 gap-3 border-t border-tertiary-fixed pt-4 sm:grid-cols-4">
-              <Field label="Ou descrição do item avulso" htmlFor={`${uid}-descricao`}>
-                <input id={`${uid}-descricao`} name="descricao" className={INPUT} />
-              </Field>
-              <Field label="Unidade" htmlFor={`${uid}-unidade`}>
-                <input id={`${uid}-unidade`} name="unidade" placeholder="m², unid, par..." className={INPUT} />
-              </Field>
-              <Field label="Valor unitário (R$)" htmlFor={`${uid}-valorUnitario`}>
-                <input
-                  id={`${uid}-valorUnitario`}
-                  name="valorUnitario"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className={INPUT}
-                />
-              </Field>
-              <Field label="Perda (%)" htmlFor={`${uid}-percentualPerda`}>
-                <input
-                  id={`${uid}-percentualPerda`}
-                  name="percentualPerda"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  defaultValue={0}
-                  className={INPUT}
-                />
-              </Field>
-            </div>
           </form>
         )}
 
@@ -525,8 +563,8 @@ function AmbienteCard({
                   <div>
                     <p className="text-on-background">{item.descricao}</p>
                     <p className="text-on-surface-variant">
-                      {item.quantidade} {item.unidade} × {formatarMoeda(item.valorUnitario)}
-                      {item.percentualPerda > 0 ? ` (+${item.percentualPerda}% perda)` : ""}
+                      {item.quantidade} {item.unidade} · {formatarMoeda(item.valorUnitario)}/{item.unidade}
+                      {item.percentualPerda > 0 ? ` · Perda: ${item.percentualPerda}%` : ""}
                     </p>
                   </div>
                   <div className="flex items-center gap-4">

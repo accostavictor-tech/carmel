@@ -17,7 +17,7 @@ function categoriaDeFormData(formData: FormData): CategoriaInsumo {
     : CategoriaInsumo.OUTROS;
 }
 
-export async function criarInsumoAction(formData: FormData) {
+async function criarInsumoNoBanco(formData: FormData) {
   const nome = String(formData.get("nome") ?? "").trim();
   const unidade = String(formData.get("unidade") ?? "").trim();
   const valorUnitario = numeroDeFormData(formData, "valorUnitario");
@@ -28,10 +28,24 @@ export async function criarInsumoAction(formData: FormData) {
     throw new Error("Preencha nome, unidade e valor do insumo.");
   }
 
-  await prisma.insumo.create({ data: { nome, unidade, valorUnitario, percentualPerda, categoria } });
+  const insumo = await prisma.insumo.create({
+    data: { nome, unidade, valorUnitario, percentualPerda, categoria },
+  });
 
   revalidatePath("/insumos");
   updateTag("insumos-ativos");
+
+  return insumo;
+}
+
+export async function criarInsumoAction(formData: FormData) {
+  await criarInsumoNoBanco(formData);
+}
+
+// Variante que retorna o insumo criado, para cadastro rápido feito direto do
+// combobox de insumos do orçamento (sem passar pela página /insumos).
+export async function criarInsumoERetornarAction(formData: FormData) {
+  return criarInsumoNoBanco(formData);
 }
 
 export async function atualizarInsumoAction(insumoId: string, formData: FormData) {

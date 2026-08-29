@@ -95,10 +95,6 @@ export default async function OrcamentoPublicoPage({
         <div className="flex flex-col gap-6 rounded-lg border border-tertiary-fixed bg-surface-container-lowest shadow-[0_10px_30px_rgba(29,45,61,0.05)]">
           {orcamento.ambientes.map((ambiente) => {
             const resultado = calcularAmbiente(ambiente, orcamento.encargos);
-            const totalItensAmbiente = ambiente.itens.reduce(
-              (soma, item) => soma + item.valorUnitario * item.quantidade * (1 + item.percentualPerda / 100),
-              0
-            );
 
             return (
               <div key={ambiente.id} className="flex flex-col border-b border-tertiary-fixed last:border-0">
@@ -106,29 +102,11 @@ export default async function OrcamentoPublicoPage({
                   <p className="text-label-bold uppercase tracking-wide text-on-primary">{ambiente.nome}</p>
                 </div>
 
-                <ul className="flex flex-col divide-y divide-tertiary-fixed">
-                  {ambiente.itens.map((item) => {
-                    const custoComPerda = item.valorUnitario * item.quantidade * (1 + item.percentualPerda / 100);
-                    const valorCliente =
-                      totalItensAmbiente > 0
-                        ? (custoComPerda / totalItensAmbiente) * resultado.totalFinal
-                        : resultado.totalFinal / ambiente.itens.length;
-
-                    return (
-                      <li key={item.id} className="flex items-center justify-between gap-4 px-5 py-3 text-body-md">
-                        <div>
-                          <p className="text-on-background">{item.descricao}</p>
-                          <p className="text-on-surface-variant">
-                            {item.quantidade} {item.unidade}
-                          </p>
-                        </div>
-                        <span className="shrink-0 font-medium text-on-background">
-                          {formatarMoeda(valorCliente)}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
+                {ambiente.descricao && (
+                  <p className="whitespace-pre-line px-5 py-4 text-body-md text-on-background">
+                    {ambiente.descricao}
+                  </p>
+                )}
 
                 <div className="flex items-center justify-between bg-surface-container-low px-5 py-2.5 text-body-md">
                   <span className="font-medium text-on-background">Total {ambiente.nome}</span>

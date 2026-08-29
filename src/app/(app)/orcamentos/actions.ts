@@ -14,6 +14,11 @@ function numeroDeFormData(formData: FormData, campo: string): number {
   return Number.isFinite(valor) ? valor : 0;
 }
 
+function textoOpcionalDeFormData(formData: FormData, campo: string): string | null {
+  const valor = String(formData.get(campo) ?? "").trim();
+  return valor || null;
+}
+
 export async function criarOrcamentoAction(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
@@ -26,11 +31,39 @@ export async function criarOrcamentoAction(formData: FormData) {
   }
 
   const orcamento = await prisma.orcamento.create({
-    data: { nome, cliente, responsavelId: session.user.id },
+    data: {
+      nome,
+      cliente,
+      clienteEmpresa: textoOpcionalDeFormData(formData, "clienteEmpresa"),
+      clienteTelefone: textoOpcionalDeFormData(formData, "clienteTelefone"),
+      clienteEmail: textoOpcionalDeFormData(formData, "clienteEmail"),
+      responsavelId: session.user.id,
+    },
   });
 
   revalidatePath("/orcamentos");
   redirect(`/orcamentos/${orcamento.id}`);
+}
+
+export async function atualizarContatoOrcamentoAction(orcamentoId: string, formData: FormData) {
+  const cliente = String(formData.get("cliente") ?? "").trim();
+
+  if (!cliente) {
+    throw new Error("Informe o nome do contato.");
+  }
+
+  await prisma.orcamento.update({
+    where: { id: orcamentoId },
+    data: {
+      cliente,
+      clienteEmpresa: textoOpcionalDeFormData(formData, "clienteEmpresa"),
+      clienteTelefone: textoOpcionalDeFormData(formData, "clienteTelefone"),
+      clienteEmail: textoOpcionalDeFormData(formData, "clienteEmail"),
+    },
+  });
+
+  revalidatePath(`/orcamentos/${orcamentoId}`);
+  revalidatePath("/orcamentos");
 }
 
 export async function atualizarStatusOrcamentoAction(orcamentoId: string, status: string) {
@@ -87,7 +120,7 @@ export async function atualizarAmbienteAction(
 
   await prisma.ambiente.update({
     where: { id: ambienteId },
-    data: { nome },
+    data: { nome, descricao: textoOpcionalDeFormData(formData, "descricao") },
   });
 
   revalidatePath(`/orcamentos/${orcamentoId}`);
@@ -125,36 +158,24 @@ export async function adicionarItemAction(
   if (quantidade <= 0) {
     throw new Error("Informe uma quantidade válida.");
   }
-
-  if (insumoId) {
-    const insumo = await prisma.insumo.findUnique({ where: { id: insumoId } });
-    if (!insumo) throw new Error("Insumo não encontrado.");
-
-    await prisma.itemAmbiente.create({
-      data: {
-        ambienteId,
-        insumoId: insumo.id,
-        descricao: insumo.nome,
-        unidade: insumo.unidade,
-        valorUnitario: insumo.valorUnitario,
-        percentualPerda: insumo.percentualPerda,
-        quantidade,
-      },
-    });
-  } else {
-    const descricao = String(formData.get("descricao") ?? "").trim();
-    const unidade = String(formData.get("unidade") ?? "").trim();
-    const valorUnitario = numeroDeFormData(formData, "valorUnitario");
-    const percentualPerda = numeroDeFormData(formData, "percentualPerda");
-
-    if (!descricao || !unidade || valorUnitario <= 0) {
-      throw new Error("Preencha descrição, unidade e valor do item avulso.");
-    }
-
-    await prisma.itemAmbiente.create({
-      data: { ambienteId, descricao, unidade, valorUnitario, percentualPerda, quantidade },
-    });
+  if (!insumoId) {
+    throw new Error("Escolha um insumo do catálogo (ou cadastre um novo pelo próprio campo de busca).");
   }
+
+  const insumo = await prisma.insumo.findUnique({ where: { id: insumoId } });
+  if (!insumo) throw new Error("Insumo não encontrado.");
+
+  await prisma.itemAmbiente.create({
+    data: {
+      ambienteId,
+      insumoId: insumo.id,
+      descricao: insumo.nome,
+      unidade: insumo.unidade,
+      valorUnitario: insumo.valorUnitario,
+      percentualPerda: insumo.percentualPerda,
+      quantidade,
+    },
+  });
 
   revalidatePath(`/orcamentos/${orcamentoId}`);
 }

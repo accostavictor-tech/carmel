@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { formatarMoeda } from "@/lib/format";
 import { CATEGORIA_INSUMO_LABELS, CATEGORIA_INSUMO_ORDEM } from "@/lib/orcamentos";
+import { criarInsumoERetornarAction } from "../../insumos/actions";
 import type { CategoriaInsumo } from "@prisma/client";
 
 type Insumo = {
@@ -15,6 +17,8 @@ type Insumo = {
 };
 
 const INPUT = "h-10 w-full rounded-md border border-tertiary-fixed bg-surface-container-lowest pl-3 pr-9 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-1 focus:ring-primary";
+const MODAL_INPUT = "h-10 w-full rounded-md border border-tertiary-fixed bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-1 focus:ring-primary";
+const MODAL_LABEL = "text-xs font-semibold uppercase tracking-wide text-on-surface-variant";
 const LIMITE_BUSCA = 40;
 
 function rotuloInsumo(insumo: Insumo) {
@@ -41,6 +45,88 @@ function OpcaoInsumo({ insumo, onSelect }: { insumo: Insumo; onSelect: (insumo: 
   );
 }
 
+function ModalNovoInsumo({
+  nomeInicial,
+  onCriado,
+  onFechar,
+}: {
+  nomeInicial: string;
+  onCriado: (insumo: Insumo) => void;
+  onFechar: () => void;
+}) {
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  async function enviar(formData: FormData) {
+    setEnviando(true);
+    setErro(null);
+    try {
+      const insumo = await criarInsumoERetornarAction(formData);
+      onCriado(insumo);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Não foi possível cadastrar o insumo.");
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 p-4">
+      <div className="flex w-full max-w-md flex-col gap-4 rounded-lg bg-surface-container-lowest p-6 shadow-xl">
+        <p className="text-lg font-semibold text-on-background">Cadastrar novo insumo</p>
+
+        <form action={enviar} className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label className={MODAL_LABEL} htmlFor="modal-insumo-nome">Nome</label>
+            <input id="modal-insumo-nome" name="nome" defaultValue={nomeInicial} required className={MODAL_INPUT} />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className={MODAL_LABEL} htmlFor="modal-insumo-categoria">Categoria</label>
+            <select id="modal-insumo-categoria" name="categoria" defaultValue="OUTROS" className={MODAL_INPUT}>
+              {CATEGORIA_INSUMO_ORDEM.map((categoria) => (
+                <option key={categoria} value={categoria}>
+                  {CATEGORIA_INSUMO_LABELS[categoria]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className={MODAL_LABEL} htmlFor="modal-insumo-unidade">Unidade</label>
+              <input id="modal-insumo-unidade" name="unidade" placeholder="m², unid, par..." required className={MODAL_INPUT} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className={MODAL_LABEL} htmlFor="modal-insumo-valor">Valor (R$)</label>
+              <input id="modal-insumo-valor" name="valorUnitario" type="number" step="0.01" min="0" required className={MODAL_INPUT} />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className={MODAL_LABEL} htmlFor="modal-insumo-perda">Perda (%)</label>
+            <input id="modal-insumo-perda" name="percentualPerda" type="number" step="0.01" min="0" defaultValue={0} className={MODAL_INPUT} />
+          </div>
+
+          {erro && <p className="text-body-md text-error">{erro}</p>}
+
+          <div className="mt-2 flex justify-end gap-3">
+            <button type="button" onClick={onFechar} className="text-body-md font-medium text-on-surface-variant transition hover:text-on-background">
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={enviando}
+              className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-body-md font-medium text-on-primary transition hover:bg-primary-container disabled:opacity-60"
+            >
+              {enviando ? "Cadastrando..." : "Cadastrar e usar"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export function InsumoPicker({
   insumos,
   name,
@@ -53,6 +139,7 @@ export function InsumoPicker({
   const [texto, setTexto] = useState("");
   const [selecionado, setSelecionado] = useState<{ id: string; label: string } | null>(null);
   const [aberto, setAberto] = useState(false);
+  const [modalAberto, setModalAberto] = useState(false);
 
   const termo = texto.trim().toLowerCase();
 
@@ -133,8 +220,33 @@ export function InsumoPicker({
               </div>
             ))
           )}
+
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              setModalAberto(true);
+              setAberto(false);
+            }}
+            className="flex w-full items-center gap-2 border-t border-tertiary-fixed px-3 py-2.5 text-left text-body-md font-medium text-primary hover:bg-surface-container-low"
+          >
+            + Cadastrar novo insumo
+          </button>
         </div>
       )}
+
+      {modalAberto &&
+        createPortal(
+          <ModalNovoInsumo
+            nomeInicial={texto}
+            onFechar={() => setModalAberto(false)}
+            onCriado={(insumo) => {
+              selecionar(insumo);
+              setModalAberto(false);
+            }}
+          />,
+          document.body
+        )}
     </div>
   );
 }

@@ -25,11 +25,37 @@ export default function NovoOrcamentoPage() {
           />
         </div>
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor="cliente" className={LABEL}>
-            Cliente *
-          </label>
-          <input id="cliente" name="cliente" required className={INPUT} />
+        <div className="flex flex-col gap-3 border-t border-tertiary-fixed pt-4">
+          <p className={LABEL}>Contato</p>
+
+          <div className="flex flex-col gap-1">
+            <label htmlFor="cliente" className={LABEL}>
+              Nome *
+            </label>
+            <input id="cliente" name="cliente" required className={INPUT} />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label htmlFor="clienteEmpresa" className={LABEL}>
+              Empresa
+            </label>
+            <input id="clienteEmpresa" name="clienteEmpresa" className={INPUT} />
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="clienteTelefone" className={LABEL}>
+                Telefone
+              </label>
+              <input id="clienteTelefone" name="clienteTelefone" className={INPUT} />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="clienteEmail" className={LABEL}>
+                E-mail
+              </label>
+              <input id="clienteEmail" name="clienteEmail" type="email" className={INPUT} />
+            </div>
+          </div>
         </div>
 
         <button
