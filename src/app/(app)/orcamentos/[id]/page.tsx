@@ -12,10 +12,11 @@ import {
   adicionarMaterialAction,
   aprovarOrcamentoAction,
   atualizarAmbienteAction,
+  atualizarCodigoOrcamentoAction,
   atualizarContatoOrcamentoAction,
   atualizarImpostoOrcamentoAction,
   atualizarItemAction,
-  atualizarPercentuaisItemAction,
+  atualizarLucroItemAction,
   criarAmbienteAction,
   criarItemAction,
   gerarLinkCompartilhamentoAction,
@@ -147,6 +148,7 @@ export default async function OrcamentoDetalhePage({
 
   const criarAmbienteComId = criarAmbienteAction.bind(null, orcamento.id);
   const aprovarComId = aprovarOrcamentoAction.bind(null, orcamento.id);
+  const atualizarCodigoComId = atualizarCodigoOrcamentoAction.bind(null, orcamento.id);
   const atualizarContatoComId = atualizarContatoOrcamentoAction.bind(null, orcamento.id);
   const atualizarImpostoComId = atualizarImpostoOrcamentoAction.bind(null, orcamento.id);
   const adicionarEncargoComId = adicionarEncargoOrcamentoAction.bind(null, orcamento.id);
@@ -163,8 +165,31 @@ export default async function OrcamentoDetalhePage({
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-1">
-        <h1 className="text-headline-lg text-on-background">{orcamento.nome}</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-headline-lg text-on-background">{orcamento.nome}</h1>
+          {orcamento.codigo && (
+            <span className="rounded-lg bg-tertiary-fixed px-2.5 py-1 text-label-bold text-on-tertiary-fixed-variant">
+              {orcamento.codigo}
+            </span>
+          )}
+        </div>
         <p className="text-body-md text-on-surface-variant">{orcamento.cliente}</p>
+        {!jaConvertido && (
+          <form action={atualizarCodigoComId} className="mt-1 flex items-end gap-2">
+            <Field label="Código" htmlFor="codigo">
+              <input
+                id="codigo"
+                name="codigo"
+                defaultValue={orcamento.codigo ?? ""}
+                placeholder="Ex: 26081A"
+                className={`${INPUT} w-40`}
+              />
+            </Field>
+            <button type="submit" className={`${BTN_TEXT} h-10`}>
+              Salvar
+            </button>
+          </form>
+        )}
       </div>
 
       <div className={`flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between ${CARD}`}>
@@ -575,7 +600,7 @@ function ItemCard({
   const uid = item.id;
 
   const atualizarComId = atualizarItemAction.bind(null, orcamentoId, item.id);
-  const atualizarPercentuaisComId = atualizarPercentuaisItemAction.bind(null, orcamentoId, item.id);
+  const atualizarLucroComId = atualizarLucroItemAction.bind(null, orcamentoId, item.id);
   const removerItemComId = removerItemAction.bind(null, orcamentoId, item.id);
   const adicionarMaterialComId = adicionarMaterialAction.bind(null, orcamentoId, item.id);
 
@@ -737,19 +762,7 @@ function ItemCard({
         <div className="flex flex-col gap-4 border-t border-tertiary-fixed pt-6">
           <StepHeading numero={2} titulo="Custo e lucro" />
 
-          <form action={atualizarPercentuaisComId} className={`flex flex-wrap items-end gap-4 ${PAINEL}`}>
-            <Field label="Insumos gerais (%)" htmlFor={`${uid}-insumosGerais`}>
-              <input
-                id={`${uid}-insumosGerais`}
-                name="percentualInsumosGerais"
-                type="number"
-                step="0.01"
-                min="0"
-                defaultValue={item.percentualInsumosGerais}
-                disabled={bloqueado}
-                className={`${INPUT} w-32`}
-              />
-            </Field>
+          <form action={atualizarLucroComId} className={`flex flex-wrap items-end gap-4 ${PAINEL}`}>
             <Field label="Margem de lucro (%)" htmlFor={`${uid}-lucro`}>
               <input
                 id={`${uid}-lucro`}

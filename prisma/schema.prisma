@@ -106,6 +106,7 @@ model Insumo {
 
 model Orcamento {
   id                String          @id @default(cuid())
+  codigo            String?         @unique // ex: "2608.1A" — AAMM + sequência do mês + letra de revisão
   nome              String
   cliente           String // nome do contato
   clienteEmpresa    String?

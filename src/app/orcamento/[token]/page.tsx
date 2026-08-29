@@ -78,7 +78,12 @@ export default async function OrcamentoPublicoPage({
 
       <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-6 py-8">
         <div className="flex flex-col gap-1">
-          <p className="text-body-md text-on-surface-variant">{formatarData(orcamento.criadoEm)}</p>
+          <div className="flex items-center justify-between">
+            <p className="text-body-md text-on-surface-variant">{formatarData(orcamento.criadoEm)}</p>
+            {orcamento.codigo && (
+              <p className="text-body-md text-on-surface-variant">{orcamento.codigo}</p>
+            )}
+          </div>
           <h1 className="text-headline-lg text-on-background">Orçamento</h1>
           <p className="text-body-md text-on-surface-variant">Cliente: {orcamento.cliente}</p>
         </div>

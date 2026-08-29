@@ -36,7 +36,14 @@ export default async function OrcamentosPage() {
                   className="flex flex-col gap-2 rounded-lg border border-tertiary-fixed bg-surface-container-lowest p-4 shadow-[0_10px_30px_rgba(29,45,61,0.05)] transition hover:border-primary sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
-                    <p className="font-display font-semibold text-on-background">{orcamento.nome}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-display font-semibold text-on-background">{orcamento.nome}</p>
+                      {orcamento.codigo && (
+                        <span className="rounded bg-tertiary-fixed px-1.5 py-0.5 text-xs font-semibold text-on-tertiary-fixed-variant">
+                          {orcamento.codigo}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-body-md text-on-surface-variant">{orcamento.cliente}</p>
                   </div>
 

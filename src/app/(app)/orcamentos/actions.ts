@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { StatusOrcamento, CategoriaCusto } from "@prisma/client";
 import { totalInsumosOrcamento, totalOrcamento } from "@/lib/orcamentos";
 import { gerarLinkToken } from "@/lib/compartilhamento";
+import { gerarProximoCodigo } from "@/lib/codigo-orcamento";
 
 function numeroDeFormData(formData: FormData, campo: string): number {
   const bruto = String(formData.get(campo) ?? "0").replace(",", ".");
@@ -30,8 +31,15 @@ export async function criarOrcamentoAction(formData: FormData) {
     throw new Error("Preencha nome e cliente do orçamento.");
   }
 
+  const codigosExistentes = await prisma.orcamento.findMany({
+    where: { codigo: { not: null } },
+    select: { codigo: true },
+  });
+  const codigo = gerarProximoCodigo(codigosExistentes.map((o) => o.codigo as string));
+
   const orcamento = await prisma.orcamento.create({
     data: {
+      codigo,
       nome,
       cliente,
       clienteEmpresa: textoOpcionalDeFormData(formData, "clienteEmpresa"),
@@ -43,6 +51,22 @@ export async function criarOrcamentoAction(formData: FormData) {
 
   revalidatePath("/orcamentos");
   redirect(`/orcamentos/${orcamento.id}`);
+}
+
+export async function atualizarCodigoOrcamentoAction(orcamentoId: string, formData: FormData) {
+  const codigo = String(formData.get("codigo") ?? "").trim();
+
+  if (!codigo) {
+    throw new Error("Informe o código do orçamento.");
+  }
+
+  await prisma.orcamento.update({
+    where: { id: orcamentoId },
+    data: { codigo },
+  });
+
+  revalidatePath(`/orcamentos/${orcamentoId}`);
+  revalidatePath("/orcamentos");
 }
 
 export async function atualizarContatoOrcamentoAction(orcamentoId: string, formData: FormData) {
@@ -162,17 +186,12 @@ export async function atualizarItemAction(orcamentoId: string, itemId: string, f
   revalidatePath(`/orcamentos/${orcamentoId}`);
 }
 
-export async function atualizarPercentuaisItemAction(
-  orcamentoId: string,
-  itemId: string,
-  formData: FormData
-) {
-  const percentualInsumosGerais = numeroDeFormData(formData, "percentualInsumosGerais");
+export async function atualizarLucroItemAction(orcamentoId: string, itemId: string, formData: FormData) {
   const percentualLucro = Math.min(numeroDeFormData(formData, "percentualLucro"), 99.99);
 
   await prisma.item.update({
     where: { id: itemId },
-    data: { percentualInsumosGerais, percentualLucro },
+    data: { percentualLucro },
   });
 
   revalidatePath(`/orcamentos/${orcamentoId}`);
