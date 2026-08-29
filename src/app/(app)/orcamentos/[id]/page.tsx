@@ -4,22 +4,25 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getInsumosAtivos } from "@/lib/insumos-cache";
 import { formatarMoeda, formatarDataHora } from "@/lib/format";
-import { calcularAmbiente, totalOrcamento } from "@/lib/orcamentos";
+import { calcularItem, totalAmbiente } from "@/lib/orcamentos";
 import { calcularValidade } from "@/lib/compartilhamento";
 import { CategoriaInsumo } from "@prisma/client";
 import {
   adicionarEncargoOrcamentoAction,
-  adicionarItemAction,
+  adicionarMaterialAction,
   aprovarOrcamentoAction,
   atualizarAmbienteAction,
   atualizarContatoOrcamentoAction,
   atualizarImpostoOrcamentoAction,
-  atualizarPercentuaisAmbienteAction,
+  atualizarItemAction,
+  atualizarPercentuaisItemAction,
   criarAmbienteAction,
+  criarItemAction,
   gerarLinkCompartilhamentoAction,
   removerAmbienteAction,
   removerEncargoOrcamentoAction,
   removerItemAction,
+  removerMaterialAction,
   renovarPrazoCompartilhamentoAction,
   revogarLinkCompartilhamentoAction,
 } from "../actions";
@@ -48,20 +51,28 @@ type Insumo = {
 
 type Encargo = { id: string; nome: string; percentual: number; nivel: number; ordem: number };
 
-type Ambiente = {
+type Material = {
+  id: string;
+  descricao: string;
+  unidade: string;
+  valorUnitario: number;
+  percentualPerda: number;
+  quantidade: number;
+};
+
+type Item = {
   id: string;
   nome: string;
   descricao: string | null;
   percentualInsumosGerais: number;
   percentualLucro: number;
-  itens: {
-    id: string;
-    descricao: string;
-    unidade: string;
-    valorUnitario: number;
-    percentualPerda: number;
-    quantidade: number;
-  }[];
+  materiais: Material[];
+};
+
+type Ambiente = {
+  id: string;
+  nome: string;
+  itens: Item[];
 };
 
 function Field({
@@ -109,7 +120,12 @@ export default async function OrcamentoDetalhePage({
       include: {
         ambientes: {
           orderBy: { ordem: "asc" },
-          include: { itens: true },
+          include: {
+            itens: {
+              orderBy: { ordem: "asc" },
+              include: { materiais: true },
+            },
+          },
         },
         encargos: { orderBy: { ordem: "asc" } },
         visualizacoes: { orderBy: { criadoEm: "desc" }, take: 10 },
@@ -122,7 +138,10 @@ export default async function OrcamentoDetalhePage({
 
   if (!orcamento) notFound();
 
-  const total = totalOrcamento(orcamento.ambientes, orcamento.encargos);
+  const total = orcamento.ambientes.reduce(
+    (soma, ambiente) => soma + totalAmbiente(ambiente.itens, orcamento.encargos),
+    0
+  );
   const totalComImposto = total - total * (orcamento.percentualImposto / 100);
   const jaConvertido = Boolean(orcamento.projetoId);
 
@@ -311,7 +330,7 @@ export default async function OrcamentoDetalhePage({
         <div className="flex flex-col gap-1.5">
           <p className={LABEL}>Impostos e comissões do orçamento</p>
           <p className="text-body-md text-on-surface-variant">
-            Definidos uma única vez aqui e aplicados sobre o valor de venda de todos os ambientes.
+            Definidos uma única vez aqui e aplicados sobre o valor de venda de todos os itens.
             Adicione uma comissão por pessoa (vendedor, sócio, etc.) — pode ser nenhuma, uma ou
             várias. Encargos com o mesmo nível incidem sobre a mesma base e se somam; o próximo
             nível cascateia sobre o resultado.
@@ -445,13 +464,12 @@ function AmbienteCard({
   bloqueado: boolean;
   abertoPorPadrao: boolean;
 }) {
-  const resultado = calcularAmbiente(ambiente, encargos);
+  const totalAmbienteValor = totalAmbiente(ambiente.itens, encargos);
   const uid = ambiente.id;
 
   const atualizarComId = atualizarAmbienteAction.bind(null, orcamentoId, ambiente.id);
-  const atualizarPercentuaisComId = atualizarPercentuaisAmbienteAction.bind(null, orcamentoId, ambiente.id);
   const removerAmbienteComId = removerAmbienteAction.bind(null, orcamentoId, ambiente.id);
-  const adicionarItemComId = adicionarItemAction.bind(null, orcamentoId, ambiente.id);
+  const criarItemComId = criarItemAction.bind(null, orcamentoId, ambiente.id);
 
   return (
     <details
@@ -472,13 +490,28 @@ function AmbienteCard({
             {ambiente.itens.length} {ambiente.itens.length === 1 ? "item" : "itens"}
           </span>
         </div>
-        <span className="shrink-0 text-lg font-semibold text-primary">{formatarMoeda(resultado.totalFinal)}</span>
+        <span className="shrink-0 text-lg font-semibold text-primary">{formatarMoeda(totalAmbienteValor)}</span>
       </summary>
 
       <div className="flex flex-col gap-6 border-t border-tertiary-fixed p-5">
-      {/* Nome e descrição do ambiente */}
-      <div className="flex flex-col gap-3">
-        <div className="flex justify-end">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <form action={atualizarComId} className="flex flex-1 items-end gap-2">
+            <Field label="Ambiente" htmlFor={`${uid}-nome`} className="flex-1 max-w-sm">
+              <input
+                id={`${uid}-nome`}
+                name="nome"
+                defaultValue={ambiente.nome}
+                disabled={bloqueado}
+                className={`${INPUT} font-display font-semibold`}
+              />
+            </Field>
+            {!bloqueado && (
+              <button type="submit" className={`${BTN_TEXT} h-10`}>
+                Salvar
+              </button>
+            )}
+          </form>
+
           {!bloqueado && (
             <form action={removerAmbienteComId}>
               <button type="submit" className={`${BTN_TEXT_DANGER} h-10`}>
@@ -488,194 +521,304 @@ function AmbienteCard({
           )}
         </div>
 
-        <form action={atualizarComId} className="flex flex-col gap-3">
-          <Field label="Ambiente" htmlFor={`${uid}-nome`} className="max-w-sm">
-            <input
-              id={`${uid}-nome`}
-              name="nome"
-              defaultValue={ambiente.nome}
-              disabled={bloqueado}
-              className={`${INPUT} font-display font-semibold`}
+        <div className="flex flex-col gap-4">
+          {ambiente.itens.map((item, index) => (
+            <ItemCard
+              key={item.id}
+              orcamentoId={orcamentoId}
+              item={item}
+              insumos={insumos}
+              encargos={encargos}
+              bloqueado={bloqueado}
+              abertoPorPadrao={index === ambiente.itens.length - 1}
             />
-          </Field>
-
-          <Field label="Descrição (aparece no link do cliente, no lugar da lista de materiais)" htmlFor={`${uid}-descricao`}>
-            <textarea
-              id={`${uid}-descricao`}
-              name="descricao"
-              rows={3}
-              defaultValue={ambiente.descricao ?? ""}
-              disabled={bloqueado}
-              placeholder="Ex: Painel com 2 portas pivotantes em MDF Nogueira Imperial (Flora)"
-              className={`${INPUT} h-auto resize-y py-2`}
-            />
-          </Field>
-
-          {!bloqueado && (
-            <button type="submit" className={`${BTN_TEXT} self-start`}>
-              Salvar
-            </button>
-          )}
-        </form>
-      </div>
-
-      {/* 1. Materiais */}
-      <div className="flex flex-col gap-4 border-t border-tertiary-fixed pt-6">
-        <StepHeading numero={1} titulo="Materiais" />
+          ))}
+        </div>
 
         {!bloqueado && (
-          <form action={adicionarItemComId} className={`flex flex-col gap-4 ${PAINEL}`}>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,0.6fr)_auto] sm:items-end">
-              <Field label="Insumo do catálogo" htmlFor={`${uid}-insumoId`}>
-                <InsumoPicker
-                  key={`picker-${ambiente.id}-${ambiente.itens.length}`}
-                  id={`${uid}-insumoId`}
-                  name="insumoId"
-                  insumos={insumos}
-                />
-              </Field>
-              <Field label="Quantidade" htmlFor={`${uid}-quantidade`}>
-                <input
-                  id={`${uid}-quantidade`}
-                  name="quantidade"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  required
-                  className={INPUT}
-                />
-              </Field>
-              <button type="submit" className={BTN_PRIMARY}>
-                Adicionar
-              </button>
-            </div>
+          <form action={criarItemComId} className={`flex flex-col gap-3 sm:flex-row sm:items-end ${PAINEL}`}>
+            <Field label="Nome do item" htmlFor={`${uid}-novo-item`} className="flex-1">
+              <input
+                id={`${uid}-novo-item`}
+                name="nome"
+                placeholder="Ex: Prateleira, Rack, Armário"
+                required
+                className={INPUT}
+              />
+            </Field>
+            <button type="submit" className={BTN_PRIMARY}>
+              Adicionar item
+            </button>
           </form>
         )}
-
-        {ambiente.itens.length === 0 ? (
-          <p className="text-body-md text-on-surface-variant">Nenhum material lançado ainda.</p>
-        ) : (
-          <ul className="flex flex-col divide-y divide-tertiary-fixed rounded-lg border border-tertiary-fixed">
-            {ambiente.itens.map((item) => {
-              const removerItemComId = removerItemAction.bind(null, orcamentoId, item.id);
-              return (
-                <li key={item.id} className="flex items-center justify-between gap-2 px-4 py-3 text-body-md">
-                  <div>
-                    <p className="text-on-background">{item.descricao}</p>
-                    <p className="text-on-surface-variant">
-                      {item.quantidade} {item.unidade} · {formatarMoeda(item.valorUnitario)}/{item.unidade}
-                      {item.percentualPerda > 0 ? ` · Perda: ${item.percentualPerda}%` : ""}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="font-medium text-on-background">
-                      {formatarMoeda(item.quantidade * item.valorUnitario * (1 + item.percentualPerda / 100))}
-                    </span>
-                    {!bloqueado && (
-                      <form action={removerItemComId}>
-                        <button type="submit" className={BTN_TEXT_DANGER}>
-                          Remover
-                        </button>
-                      </form>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-
-        <div className="flex flex-col gap-1 pt-1">
-          <Linha nome="Total de material" valor={resultado.totalItens} destaque />
-        </div>
       </div>
+    </details>
+  );
+}
 
-      {/* 2. Custo e lucro */}
-      <div className="flex flex-col gap-4 border-t border-tertiary-fixed pt-6">
-        <StepHeading numero={2} titulo="Custo e lucro" />
+function ItemCard({
+  orcamentoId,
+  item,
+  insumos,
+  encargos,
+  bloqueado,
+  abertoPorPadrao,
+}: {
+  orcamentoId: string;
+  item: Item;
+  insumos: Insumo[];
+  encargos: Encargo[];
+  bloqueado: boolean;
+  abertoPorPadrao: boolean;
+}) {
+  const resultado = calcularItem(item, encargos);
+  const uid = item.id;
 
-        <form action={atualizarPercentuaisComId} className={`flex flex-wrap items-end gap-4 ${PAINEL}`}>
-          <Field label="Insumos gerais (%)" htmlFor={`${uid}-insumosGerais`}>
-            <input
-              id={`${uid}-insumosGerais`}
-              name="percentualInsumosGerais"
-              type="number"
-              step="0.01"
-              min="0"
-              defaultValue={ambiente.percentualInsumosGerais}
-              disabled={bloqueado}
-              className={`${INPUT} w-32`}
-            />
-          </Field>
-          <Field label="Margem de lucro (%)" htmlFor={`${uid}-lucro`}>
-            <input
-              id={`${uid}-lucro`}
-              name="percentualLucro"
-              type="number"
-              step="0.01"
-              min="0"
-              max="99"
-              defaultValue={ambiente.percentualLucro}
-              disabled={bloqueado}
-              title="% do preço de venda que é lucro — não markup sobre o custo"
-              className={`${INPUT} w-32`}
-            />
-          </Field>
-          {!bloqueado && (
-            <button type="submit" className={`${BTN_TEXT} h-10`}>
-              Salvar
-            </button>
-          )}
-        </form>
+  const atualizarComId = atualizarItemAction.bind(null, orcamentoId, item.id);
+  const atualizarPercentuaisComId = atualizarPercentuaisItemAction.bind(null, orcamentoId, item.id);
+  const removerItemComId = removerItemAction.bind(null, orcamentoId, item.id);
+  const adicionarMaterialComId = adicionarMaterialAction.bind(null, orcamentoId, item.id);
 
-        <div className="flex flex-col gap-1">
-          <Linha
-            nome={`+ Insumos gerais (${ambiente.percentualInsumosGerais}%)`}
-            valor={resultado.totalCompra - resultado.totalItens}
-          />
-          <Linha nome="Total compra" valor={resultado.totalCompra} destaque />
-          <Linha nome={`+ Margem de lucro (${ambiente.percentualLucro}%)`} valor={resultado.totalVenda - resultado.totalCompra} />
-          <Linha nome="Total venda" valor={resultado.totalVenda} destaque />
+  return (
+    <details
+      className="group overflow-hidden rounded-lg border border-tertiary-fixed bg-surface-container-lowest"
+      open={abertoPorPadrao}
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 bg-surface-container-low p-4 [&::-webkit-details-marker]:hidden">
+        <div className="flex min-w-0 items-center gap-3">
+          <svg
+            viewBox="0 0 20 20"
+            fill="none"
+            className="h-4 w-4 shrink-0 text-on-surface-variant transition-transform group-open:rotate-90"
+          >
+            <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span className="truncate font-display text-body-md font-semibold text-on-background">{item.nome}</span>
+          <span className="hidden shrink-0 text-body-md text-on-surface-variant sm:inline">
+            {item.materiais.length} {item.materiais.length === 1 ? "material" : "materiais"}
+          </span>
         </div>
-      </div>
+        <span className="shrink-0 font-semibold text-primary">{formatarMoeda(resultado.totalFinal)}</span>
+      </summary>
 
-      {/* 3. Comissões e encargos (definidos no orçamento) */}
-      <div className="flex flex-col gap-4 border-t border-tertiary-fixed pt-6">
-        <div className="flex flex-col gap-1.5">
-          <StepHeading numero={3} titulo="Comissões e encargos" />
-          <p className="pl-8 text-body-md text-on-surface-variant">
-            Definidos no topo do orçamento e aplicados aqui automaticamente.
-          </p>
-        </div>
-
-        {encargos.length === 0 ? (
-          <p className="text-body-md text-on-surface-variant">Nenhum encargo lançado no orçamento.</p>
-        ) : (
-          <div className="flex flex-col divide-y divide-tertiary-fixed rounded-lg border border-tertiary-fixed">
-            {resultado.niveis.map((nivelCalc) => (
-              <div key={nivelCalc.nivel} className="flex flex-col gap-2 px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <span className={FIELD_LABEL}>Nível {nivelCalc.nivel}</span>
-                  <span className="text-body-md text-on-surface-variant">
-                    base {formatarMoeda(nivelCalc.baseInicial)}
-                  </span>
-                </div>
-                {nivelCalc.encargos.map((encargo) => (
-                  <div key={encargo.nome} className="flex items-center justify-between gap-2 text-body-md">
-                    <span className="text-on-background">{encargo.nome}</span>
-                    <span className="text-on-surface-variant">{encargo.percentual}%</span>
-                  </div>
-                ))}
-                <Linha nome={`Subtotal (nível ${nivelCalc.nivel})`} valor={nivelCalc.subtotal} destaque />
-              </div>
-            ))}
+      <div className="flex flex-col gap-6 border-t border-tertiary-fixed p-5">
+        {/* Nome e descrição do item */}
+        <div className="flex flex-col gap-3">
+          <div className="flex justify-end">
+            {!bloqueado && (
+              <form action={removerItemComId}>
+                <button type="submit" className={`${BTN_TEXT_DANGER} h-10`}>
+                  Remover item
+                </button>
+              </form>
+            )}
           </div>
-        )}
 
-        <div className="rounded-lg border border-tertiary-fixed bg-tertiary-fixed px-4 py-3">
-          <Linha nome="Valor de venda do ambiente" valor={resultado.totalFinal} destaque grande />
+          <form action={atualizarComId} className="flex flex-col gap-3">
+            <Field label="Nome do item" htmlFor={`${uid}-nome`} className="max-w-sm">
+              <input
+                id={`${uid}-nome`}
+                name="nome"
+                defaultValue={item.nome}
+                disabled={bloqueado}
+                className={`${INPUT} font-display font-semibold`}
+              />
+            </Field>
+
+            <Field label="Descrição (aparece no link do cliente, junto com nome e valor)" htmlFor={`${uid}-descricao`}>
+              <textarea
+                id={`${uid}-descricao`}
+                name="descricao"
+                rows={2}
+                defaultValue={item.descricao ?? ""}
+                disabled={bloqueado}
+                placeholder="Ex: Contendo 4 basculantes, em MDF Nogueira Imperial (Flora)"
+                className={`${INPUT} h-auto resize-y py-2`}
+              />
+            </Field>
+
+            {!bloqueado && (
+              <button type="submit" className={`${BTN_TEXT} self-start`}>
+                Salvar
+              </button>
+            )}
+          </form>
         </div>
-      </div>
+
+        {/* 1. Materiais */}
+        <div className="flex flex-col gap-4 border-t border-tertiary-fixed pt-6">
+          <StepHeading numero={1} titulo="Materiais" />
+
+          {!bloqueado && (
+            <form action={adicionarMaterialComId} className={`flex flex-col gap-4 ${PAINEL}`}>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,0.6fr)_auto] sm:items-end">
+                <Field label="Insumo do catálogo" htmlFor={`${uid}-insumoId`}>
+                  <InsumoPicker
+                    key={`picker-${item.id}-${item.materiais.length}`}
+                    id={`${uid}-insumoId`}
+                    name="insumoId"
+                    insumos={insumos}
+                  />
+                </Field>
+                <Field label="Quantidade" htmlFor={`${uid}-quantidade`}>
+                  <input
+                    id={`${uid}-quantidade`}
+                    name="quantidade"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    className={INPUT}
+                  />
+                </Field>
+                <button type="submit" className={BTN_PRIMARY}>
+                  Adicionar
+                </button>
+              </div>
+            </form>
+          )}
+
+          {item.materiais.length === 0 ? (
+            <p className="text-body-md text-on-surface-variant">Nenhum material lançado ainda.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-tertiary-fixed">
+              <table className="w-full min-w-[560px] text-body-md">
+                <thead>
+                  <tr className="border-b border-tertiary-fixed bg-surface-container-low text-left">
+                    <th className={`px-3 py-2 font-normal ${FIELD_LABEL}`}>Insumo</th>
+                    <th className={`px-3 py-2 font-normal ${FIELD_LABEL}`}>Unid.</th>
+                    <th className={`px-3 py-2 font-normal ${FIELD_LABEL}`}>Valor unit.</th>
+                    <th className={`px-3 py-2 font-normal ${FIELD_LABEL}`}>Perda</th>
+                    <th className={`px-3 py-2 font-normal ${FIELD_LABEL}`}>Qtd</th>
+                    <th className={`px-3 py-2 text-right font-normal ${FIELD_LABEL}`}>Valor</th>
+                    <th className="px-3 py-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {item.materiais.map((material) => {
+                    const removerMaterialComId = removerMaterialAction.bind(null, orcamentoId, material.id);
+                    const valorTotal =
+                      material.quantidade * material.valorUnitario * (1 + material.percentualPerda / 100);
+                    return (
+                      <tr key={material.id} className="border-b border-tertiary-fixed last:border-0">
+                        <td className="px-3 py-2 text-on-background">{material.descricao}</td>
+                        <td className="px-3 py-2 text-on-surface-variant">{material.unidade}</td>
+                        <td className="px-3 py-2 text-on-surface-variant">{formatarMoeda(material.valorUnitario)}</td>
+                        <td className="px-3 py-2 text-on-surface-variant">
+                          {material.percentualPerda > 0 ? `${material.percentualPerda}%` : "—"}
+                        </td>
+                        <td className="px-3 py-2 text-on-surface-variant">{material.quantidade}</td>
+                        <td className="px-3 py-2 text-right font-medium text-on-background">
+                          {formatarMoeda(valorTotal)}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {!bloqueado && (
+                            <form action={removerMaterialComId}>
+                              <button type="submit" className={BTN_TEXT_DANGER}>
+                                Remover
+                              </button>
+                            </form>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-1 pt-1">
+            <Linha nome="Total de material" valor={resultado.totalMateriais} destaque />
+          </div>
+        </div>
+
+        {/* 2. Custo e lucro */}
+        <div className="flex flex-col gap-4 border-t border-tertiary-fixed pt-6">
+          <StepHeading numero={2} titulo="Custo e lucro" />
+
+          <form action={atualizarPercentuaisComId} className={`flex flex-wrap items-end gap-4 ${PAINEL}`}>
+            <Field label="Insumos gerais (%)" htmlFor={`${uid}-insumosGerais`}>
+              <input
+                id={`${uid}-insumosGerais`}
+                name="percentualInsumosGerais"
+                type="number"
+                step="0.01"
+                min="0"
+                defaultValue={item.percentualInsumosGerais}
+                disabled={bloqueado}
+                className={`${INPUT} w-32`}
+              />
+            </Field>
+            <Field label="Margem de lucro (%)" htmlFor={`${uid}-lucro`}>
+              <input
+                id={`${uid}-lucro`}
+                name="percentualLucro"
+                type="number"
+                step="0.01"
+                min="0"
+                max="99"
+                defaultValue={item.percentualLucro}
+                disabled={bloqueado}
+                title="% do preço de venda que é lucro — não markup sobre o custo"
+                className={`${INPUT} w-32`}
+              />
+            </Field>
+            {!bloqueado && (
+              <button type="submit" className={`${BTN_TEXT} h-10`}>
+                Salvar
+              </button>
+            )}
+          </form>
+
+          <div className="flex flex-col gap-1">
+            <Linha
+              nome={`+ Insumos gerais (${item.percentualInsumosGerais}%)`}
+              valor={resultado.totalCompra - resultado.totalMateriais}
+            />
+            <Linha nome="Total compra" valor={resultado.totalCompra} destaque />
+            <Linha nome={`+ Margem de lucro (${item.percentualLucro}%)`} valor={resultado.totalVenda - resultado.totalCompra} />
+            <Linha nome="Total venda" valor={resultado.totalVenda} destaque />
+          </div>
+        </div>
+
+        {/* 3. Comissões e encargos (definidos no orçamento) */}
+        <div className="flex flex-col gap-4 border-t border-tertiary-fixed pt-6">
+          <div className="flex flex-col gap-1.5">
+            <StepHeading numero={3} titulo="Comissões e encargos" />
+            <p className="pl-8 text-body-md text-on-surface-variant">
+              Definidos no topo do orçamento e aplicados aqui automaticamente.
+            </p>
+          </div>
+
+          {encargos.length === 0 ? (
+            <p className="text-body-md text-on-surface-variant">Nenhum encargo lançado no orçamento.</p>
+          ) : (
+            <div className="flex flex-col divide-y divide-tertiary-fixed rounded-lg border border-tertiary-fixed">
+              {resultado.niveis.map((nivelCalc) => (
+                <div key={nivelCalc.nivel} className="flex flex-col gap-2 px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <span className={FIELD_LABEL}>Nível {nivelCalc.nivel}</span>
+                    <span className="text-body-md text-on-surface-variant">
+                      base {formatarMoeda(nivelCalc.baseInicial)}
+                    </span>
+                  </div>
+                  {nivelCalc.encargos.map((encargo) => (
+                    <div key={encargo.nome} className="flex items-center justify-between gap-2 text-body-md">
+                      <span className="text-on-background">{encargo.nome}</span>
+                      <span className="text-on-surface-variant">{encargo.percentual}%</span>
+                    </div>
+                  ))}
+                  <Linha nome={`Subtotal (nível ${nivelCalc.nivel})`} valor={nivelCalc.subtotal} destaque />
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="rounded-lg border border-tertiary-fixed bg-tertiary-fixed px-4 py-3">
+            <Linha nome="Valor de venda do item" valor={resultado.totalFinal} destaque grande />
+          </div>
+        </div>
       </div>
     </details>
   );

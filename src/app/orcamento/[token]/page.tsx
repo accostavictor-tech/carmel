@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { formatarMoeda, formatarData } from "@/lib/format";
-import { calcularAmbiente, totalOrcamento } from "@/lib/orcamentos";
+import { calcularItem, totalAmbiente, totalOrcamento } from "@/lib/orcamentos";
 import { calcularValidade, pareceBot } from "@/lib/compartilhamento";
 
 async function buscarOrcamento(token: string) {
@@ -13,7 +13,12 @@ async function buscarOrcamento(token: string) {
     include: {
       ambientes: {
         orderBy: { ordem: "asc" },
-        include: { itens: true },
+        include: {
+          itens: {
+            orderBy: { ordem: "asc" },
+            include: { materiais: true },
+          },
+        },
       },
       encargos: { orderBy: { ordem: "asc" } },
     },
@@ -105,7 +110,7 @@ export default async function OrcamentoPublicoPage({
 
         <div className="flex flex-col gap-6 rounded-lg border border-tertiary-fixed bg-surface-container-lowest shadow-[0_10px_30px_rgba(29,45,61,0.05)]">
           {orcamento.ambientes.map((ambiente) => {
-            const resultado = calcularAmbiente(ambiente, orcamento.encargos);
+            const totalDoAmbiente = totalAmbiente(ambiente.itens, orcamento.encargos);
 
             return (
               <div key={ambiente.id} className="flex flex-col border-b border-tertiary-fixed last:border-0">
@@ -113,15 +118,28 @@ export default async function OrcamentoPublicoPage({
                   <p className="text-label-bold uppercase tracking-wide text-on-primary">{ambiente.nome}</p>
                 </div>
 
-                {ambiente.descricao && (
-                  <p className="whitespace-pre-line px-5 py-4 text-body-md text-on-background">
-                    {ambiente.descricao}
-                  </p>
-                )}
+                <ul className="flex flex-col divide-y divide-tertiary-fixed">
+                  {ambiente.itens.map((item) => {
+                    const resultadoItem = calcularItem(item, orcamento.encargos);
+                    return (
+                      <li key={item.id} className="flex items-start justify-between gap-4 px-5 py-3 text-body-md">
+                        <div>
+                          <p className="font-medium text-on-background">{item.nome}</p>
+                          {item.descricao && (
+                            <p className="whitespace-pre-line text-on-surface-variant">{item.descricao}</p>
+                          )}
+                        </div>
+                        <span className="shrink-0 font-medium text-on-background">
+                          {formatarMoeda(resultadoItem.totalFinal)}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
 
                 <div className="flex items-center justify-between bg-surface-container-low px-5 py-2.5 text-body-md">
                   <span className="font-medium text-on-background">Total {ambiente.nome}</span>
-                  <span className="font-semibold text-primary">{formatarMoeda(resultado.totalFinal)}</span>
+                  <span className="font-semibold text-primary">{formatarMoeda(totalDoAmbiente)}</span>
                 </div>
               </div>
             );

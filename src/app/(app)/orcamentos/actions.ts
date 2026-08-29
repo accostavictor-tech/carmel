@@ -120,23 +120,7 @@ export async function atualizarAmbienteAction(
 
   await prisma.ambiente.update({
     where: { id: ambienteId },
-    data: { nome, descricao: textoOpcionalDeFormData(formData, "descricao") },
-  });
-
-  revalidatePath(`/orcamentos/${orcamentoId}`);
-}
-
-export async function atualizarPercentuaisAmbienteAction(
-  orcamentoId: string,
-  ambienteId: string,
-  formData: FormData
-) {
-  const percentualInsumosGerais = numeroDeFormData(formData, "percentualInsumosGerais");
-  const percentualLucro = Math.min(numeroDeFormData(formData, "percentualLucro"), 99.99);
-
-  await prisma.ambiente.update({
-    where: { id: ambienteId },
-    data: { percentualInsumosGerais, percentualLucro },
+    data: { nome },
   });
 
   revalidatePath(`/orcamentos/${orcamentoId}`);
@@ -147,9 +131,61 @@ export async function removerAmbienteAction(orcamentoId: string, ambienteId: str
   revalidatePath(`/orcamentos/${orcamentoId}`);
 }
 
-export async function adicionarItemAction(
+export async function criarItemAction(orcamentoId: string, ambienteId: string, formData: FormData) {
+  const nome = String(formData.get("nome") ?? "").trim();
+
+  if (!nome) {
+    throw new Error("Dê um nome ao item.");
+  }
+
+  const quantidadeAtual = await prisma.item.count({ where: { ambienteId } });
+
+  await prisma.item.create({
+    data: { ambienteId, nome, ordem: quantidadeAtual },
+  });
+
+  revalidatePath(`/orcamentos/${orcamentoId}`);
+}
+
+export async function atualizarItemAction(orcamentoId: string, itemId: string, formData: FormData) {
+  const nome = String(formData.get("nome") ?? "").trim();
+
+  if (!nome) {
+    throw new Error("Dê um nome ao item.");
+  }
+
+  await prisma.item.update({
+    where: { id: itemId },
+    data: { nome, descricao: textoOpcionalDeFormData(formData, "descricao") },
+  });
+
+  revalidatePath(`/orcamentos/${orcamentoId}`);
+}
+
+export async function atualizarPercentuaisItemAction(
   orcamentoId: string,
-  ambienteId: string,
+  itemId: string,
+  formData: FormData
+) {
+  const percentualInsumosGerais = numeroDeFormData(formData, "percentualInsumosGerais");
+  const percentualLucro = Math.min(numeroDeFormData(formData, "percentualLucro"), 99.99);
+
+  await prisma.item.update({
+    where: { id: itemId },
+    data: { percentualInsumosGerais, percentualLucro },
+  });
+
+  revalidatePath(`/orcamentos/${orcamentoId}`);
+}
+
+export async function removerItemAction(orcamentoId: string, itemId: string) {
+  await prisma.item.delete({ where: { id: itemId } });
+  revalidatePath(`/orcamentos/${orcamentoId}`);
+}
+
+export async function adicionarMaterialAction(
+  orcamentoId: string,
+  itemId: string,
   formData: FormData
 ) {
   const insumoId = String(formData.get("insumoId") ?? "").trim();
@@ -165,9 +201,9 @@ export async function adicionarItemAction(
   const insumo = await prisma.insumo.findUnique({ where: { id: insumoId } });
   if (!insumo) throw new Error("Insumo não encontrado.");
 
-  await prisma.itemAmbiente.create({
+  await prisma.itemMaterial.create({
     data: {
-      ambienteId,
+      itemId,
       insumoId: insumo.id,
       descricao: insumo.nome,
       unidade: insumo.unidade,
@@ -180,8 +216,8 @@ export async function adicionarItemAction(
   revalidatePath(`/orcamentos/${orcamentoId}`);
 }
 
-export async function removerItemAction(orcamentoId: string, itemId: string) {
-  await prisma.itemAmbiente.delete({ where: { id: itemId } });
+export async function removerMaterialAction(orcamentoId: string, materialId: string) {
+  await prisma.itemMaterial.delete({ where: { id: materialId } });
   revalidatePath(`/orcamentos/${orcamentoId}`);
 }
 
@@ -249,7 +285,7 @@ export async function aprovarOrcamentoAction(orcamentoId: string) {
 
   const orcamento = await prisma.orcamento.findUnique({
     where: { id: orcamentoId },
-    include: { ambientes: { include: { itens: true } }, encargos: true },
+    include: { ambientes: { include: { itens: { include: { materiais: true } } } }, encargos: true },
   });
 
   if (!orcamento) throw new Error("Orçamento não encontrado.");

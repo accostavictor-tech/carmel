@@ -101,7 +101,7 @@ model Insumo {
   criadoEm        DateTime        @default(now())
   atualizadoEm    DateTime        @updatedAt
 
-  itens ItemAmbiente[]
+  materiais ItemMaterial[]
 }
 
 model Orcamento {
@@ -137,28 +137,40 @@ model VisualizacaoOrcamento {
 }
 
 model Ambiente {
-  id                      String  @id @default(cuid())
-  orcamentoId             String
-  orcamento               Orcamento @relation(fields: [orcamentoId], references: [id], onDelete: Cascade)
-  nome                    String // ex: "Cozinha", "Armário superior"
-  descricao               String? // texto mostrado ao cliente no link público, no lugar da lista de materiais
-  percentualInsumosGerais Float   @default(5)
-  percentualLucro         Float   @default(0)
-  ordem                   Int     @default(0)
+  id          String    @id @default(cuid())
+  orcamentoId String
+  orcamento   Orcamento @relation(fields: [orcamentoId], references: [id], onDelete: Cascade)
+  nome        String // ex: "Cozinha", "Sala"
+  ordem       Int       @default(0)
 
-  itens ItemAmbiente[]
+  itens Item[]
 }
 
-model ItemAmbiente {
-  id              String   @id @default(cuid())
-  ambienteId      String
-  ambiente        Ambiente @relation(fields: [ambienteId], references: [id], onDelete: Cascade)
+// Um móvel/peça dentro do ambiente (ex: "Prateleira", "Rack"). É o item que
+// aparece com nome, descrição e valor no orçamento e no link do cliente.
+model Item {
+  id                      String   @id @default(cuid())
+  ambienteId              String
+  ambiente                Ambiente @relation(fields: [ambienteId], references: [id], onDelete: Cascade)
+  nome                    String // ex: "Prateleira", "Rack"
+  descricao               String? // texto mostrado ao cliente no link público, no lugar da lista de materiais
+  percentualInsumosGerais Float    @default(5)
+  percentualLucro         Float    @default(0)
+  ordem                   Int      @default(0)
+
+  materiais ItemMaterial[]
+}
+
+model ItemMaterial {
+  id              String  @id @default(cuid())
+  itemId          String
+  item            Item    @relation(fields: [itemId], references: [id], onDelete: Cascade)
   insumoId        String?
-  insumo          Insumo?  @relation(fields: [insumoId], references: [id])
+  insumo          Insumo? @relation(fields: [insumoId], references: [id])
   descricao       String
   unidade         String
   valorUnitario   Float // snapshot do preço no momento do orçamento
-  percentualPerda Float    @default(0) // snapshot do % de perda no momento do orçamento
+  percentualPerda Float   @default(0) // snapshot do % de perda no momento do orçamento
   quantidade      Float
 }
 
