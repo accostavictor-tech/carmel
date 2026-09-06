@@ -2,8 +2,17 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatarMoeda, formatarData } from "@/lib/format";
 import { STATUS_LABELS, calcularMargem, estaAtrasado } from "@/lib/projetos";
+import { KanbanProjetos } from "./KanbanProjetos";
+import { ToggleVisualizacao } from "./ToggleVisualizacao";
 
-export default async function ProjetosPage() {
+export default async function ProjetosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
+  const { view } = await searchParams;
+  const modoKanban = view === "kanban";
+
   const projetos = await prisma.projeto.findMany({
     include: { custos: true },
     orderBy: { prazoEntrega: "asc" },
@@ -13,15 +22,35 @@ export default async function ProjetosPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-headline-lg text-on-background">Projetos</h1>
-        <Link
-          href="/projetos/novo"
-          className="rounded bg-secondary px-4 py-2 text-body-md font-medium text-on-secondary transition hover:opacity-90"
-        >
-          Novo projeto
-        </Link>
+        <div className="flex items-center gap-3">
+          <ToggleVisualizacao modoKanban={modoKanban} />
+          <Link
+            href="/projetos/novo"
+            className="rounded bg-secondary px-4 py-2 text-body-md font-medium text-on-secondary transition hover:opacity-90"
+          >
+            Novo projeto
+          </Link>
+        </div>
       </div>
 
-      {projetos.length === 0 ? (
+      {modoKanban ? (
+        <KanbanProjetos
+          projetos={projetos.map((projeto) => {
+            const margem = calcularMargem(projeto);
+            return {
+              id: projeto.id,
+              nome: projeto.nome,
+              cliente: projeto.cliente,
+              status: projeto.statusProducao,
+              valorFormatado: formatarMoeda(projeto.valorVenda),
+              margemFormatada: `Margem: ${margem !== null ? `${margem.toFixed(0)}%` : "—"}`,
+              margemNegativa: margem !== null && margem < 0,
+              prazoFormatado: formatarData(projeto.prazoEntrega),
+              atrasado: estaAtrasado(projeto),
+            };
+          })}
+        />
+      ) : projetos.length === 0 ? (
         <p className="rounded-lg border border-dashed border-outline-variant bg-surface-container-lowest p-8 text-center text-body-md text-on-surface-variant">
           Nenhum projeto cadastrado ainda. Clique em &quot;Novo projeto&quot; para começar.
         </p>

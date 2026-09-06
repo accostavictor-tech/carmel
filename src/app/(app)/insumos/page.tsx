@@ -1,12 +1,14 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { CATEGORIA_INSUMO_LABELS, CATEGORIA_INSUMO_ORDEM } from "@/lib/orcamentos";
-import { CategoriaInsumo } from "@prisma/client";
+import { CategoriaInsumo, Prisma } from "@prisma/client";
 import {
   arquivarInsumoAction,
   atualizarInsumoAction,
   criarInsumoAction,
   reativarInsumoAction,
 } from "./actions";
+import { BuscaInsumo } from "./BuscaInsumo";
 
 const CARD = "rounded-lg border border-tertiary-fixed bg-surface-container-lowest p-5 shadow-[0_10px_30px_rgba(29,45,61,0.05)]";
 const INPUT = "h-10 w-full rounded-md border border-tertiary-fixed bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-1 focus:ring-primary";
@@ -15,6 +17,8 @@ const FIELD_LABEL = "text-xs font-semibold uppercase tracking-wide text-on-surfa
 const BTN_PRIMARY = "inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-body-md font-medium text-on-primary transition hover:bg-primary-container";
 const BTN_TEXT = "text-body-md font-medium text-primary transition hover:underline";
 const BTN_TEXT_DANGER = "text-body-md text-on-surface-variant transition hover:text-error";
+
+const POR_PAGINA = 40;
 
 type InsumoRow = {
   id: string;
@@ -37,8 +41,40 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; 
   );
 }
 
-export default async function InsumosPage() {
-  const insumos = await prisma.insumo.findMany({ orderBy: { nome: "asc" } });
+function chavePagina(categoria: CategoriaInsumo | "ARQUIVADOS") {
+  return `p_${categoria}`;
+}
+
+function construirQuery(atuais: Record<string, string | undefined>, mudanca: Record<string, string | undefined>) {
+  const params = new URLSearchParams();
+  for (const [chave, valor] of Object.entries({ ...atuais, ...mudanca })) {
+    if (valor) params.set(chave, valor);
+  }
+  const texto = params.toString();
+  return texto ? `?${texto}` : "?";
+}
+
+function paginar<T>(lista: T[], pagina: number) {
+  const totalPaginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
+  const paginaValida = Math.min(Math.max(1, pagina), totalPaginas);
+  const inicio = (paginaValida - 1) * POR_PAGINA;
+  return { itens: lista.slice(inicio, inicio + POR_PAGINA), totalPaginas, pagina: paginaValida };
+}
+
+export default async function InsumosPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  const params = await searchParams;
+  const termo = (params.q ?? "").trim();
+
+  const insumos = await prisma.insumo.findMany({
+    where: termo
+      ? { nome: { contains: termo, mode: Prisma.QueryMode.insensitive } }
+      : undefined,
+    orderBy: { nome: "asc" },
+  });
   const ativos = insumos.filter((i) => i.ativo);
   const arquivados = insumos.filter((i) => !i.ativo);
 
@@ -95,31 +131,75 @@ export default async function InsumosPage() {
         </button>
       </form>
 
+      <BuscaInsumo termoInicial={termo} />
+
       {ativos.length === 0 ? (
         <p className="rounded-lg border border-dashed border-outline-variant bg-surface-container-lowest p-8 text-center text-body-md text-on-surface-variant">
-          Nenhum insumo cadastrado ainda.
+          {termo ? `Nenhum insumo encontrado para "${termo}".` : "Nenhum insumo cadastrado ainda."}
         </p>
+      ) : termo ? (
+        <TabelaInsumos
+          titulo={`Resultados para "${termo}"`}
+          insumos={ativos}
+          abertoPorPadrao
+        />
       ) : (
-        <div className="flex flex-col gap-6">
-          {CATEGORIA_INSUMO_ORDEM.map((categoria) => {
+        <div className="flex flex-col gap-4">
+          {CATEGORIA_INSUMO_ORDEM.map((categoria, indice) => {
             const doGrupo = ativos.filter((i) => i.categoria === categoria);
             if (doGrupo.length === 0) return null;
+            const pagina = Number(params[chavePagina(categoria)]) || 1;
+            const { itens, totalPaginas, pagina: paginaAtual } = paginar(doGrupo, pagina);
             return (
-              <TabelaInsumos key={categoria} titulo={CATEGORIA_INSUMO_LABELS[categoria]} insumos={doGrupo} />
+              <TabelaInsumos
+                key={categoria}
+                titulo={CATEGORIA_INSUMO_LABELS[categoria]}
+                insumos={itens}
+                total={doGrupo.length}
+                abertoPorPadrao={indice === 0}
+                paginacao={{
+                  paginaAtual,
+                  totalPaginas,
+                  hrefAnterior: construirQuery(params, { [chavePagina(categoria)]: String(paginaAtual - 1) }),
+                  hrefProxima: construirQuery(params, { [chavePagina(categoria)]: String(paginaAtual + 1) }),
+                }}
+              />
             );
           })}
         </div>
       )}
 
-      {arquivados.length > 0 && <TabelaInsumos titulo="Arquivados" insumos={arquivados} />}
+      {!termo && arquivados.length > 0 && (
+        <TabelaInsumos titulo="Arquivados" insumos={arquivados} abertoPorPadrao={false} />
+      )}
     </div>
   );
 }
 
-function TabelaInsumos({ titulo, insumos }: { titulo: string; insumos: InsumoRow[] }) {
+function TabelaInsumos({
+  titulo,
+  insumos,
+  total,
+  abertoPorPadrao,
+  paginacao,
+}: {
+  titulo: string;
+  insumos: InsumoRow[];
+  total?: number;
+  abertoPorPadrao: boolean;
+  paginacao?: {
+    paginaAtual: number;
+    totalPaginas: number;
+    hrefAnterior: string;
+    hrefProxima: string;
+  };
+}) {
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className={FIELD_LABEL}>{titulo}</h2>
+    <details open={abertoPorPadrao} className="group flex flex-col gap-3">
+      <summary className={`cursor-pointer list-none ${FIELD_LABEL}`}>
+        <span className="inline-block transition group-open:rotate-90">▸</span> {titulo}{" "}
+        <span className="normal-case text-on-surface-variant">({total ?? insumos.length})</span>
+      </summary>
 
       <div className="overflow-x-auto rounded-lg border border-tertiary-fixed bg-surface-container-lowest shadow-[0_10px_30px_rgba(29,45,61,0.05)]">
         <table className="w-full min-w-[680px] text-body-md">
@@ -197,6 +277,28 @@ function TabelaInsumos({ titulo, insumos }: { titulo: string; insumos: InsumoRow
           </tbody>
         </table>
       </div>
-    </section>
+
+      {paginacao && paginacao.totalPaginas > 1 && (
+        <div className="flex items-center justify-end gap-3 text-body-md text-on-surface-variant">
+          <span>
+            Página {paginacao.paginaAtual} de {paginacao.totalPaginas}
+          </span>
+          {paginacao.paginaAtual > 1 ? (
+            <Link href={paginacao.hrefAnterior} className={BTN_TEXT}>
+              Anterior
+            </Link>
+          ) : (
+            <span className="opacity-40">Anterior</span>
+          )}
+          {paginacao.paginaAtual < paginacao.totalPaginas ? (
+            <Link href={paginacao.hrefProxima} className={BTN_TEXT}>
+              Próxima
+            </Link>
+          ) : (
+            <span className="opacity-40">Próxima</span>
+          )}
+        </div>
+      )}
+    </details>
   );
 }

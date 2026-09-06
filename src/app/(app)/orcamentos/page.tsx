@@ -2,8 +2,17 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatarMoeda, formatarData } from "@/lib/format";
 import { STATUS_ORCAMENTO_LABELS, totalOrcamento } from "@/lib/orcamentos";
+import { KanbanOrcamentos } from "./KanbanOrcamentos";
+import { ToggleVisualizacao } from "./ToggleVisualizacao";
 
-export default async function OrcamentosPage() {
+export default async function OrcamentosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
+  const { view } = await searchParams;
+  const modoKanban = view === "kanban";
+
   const orcamentos = await prisma.orcamento.findMany({
     include: { ambientes: { include: { itens: { include: { materiais: true } } } }, encargos: true },
     orderBy: { criadoEm: "desc" },
@@ -13,15 +22,30 @@ export default async function OrcamentosPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-headline-lg text-on-background">Orçamentos</h1>
-        <Link
-          href="/orcamentos/novo"
-          className="rounded bg-secondary px-4 py-2 text-body-md font-medium text-on-secondary transition hover:opacity-90"
-        >
-          Novo orçamento
-        </Link>
+        <div className="flex items-center gap-3">
+          <ToggleVisualizacao modoKanban={modoKanban} />
+          <Link
+            href="/orcamentos/novo"
+            className="rounded bg-secondary px-4 py-2 text-body-md font-medium text-on-secondary transition hover:opacity-90"
+          >
+            Novo orçamento
+          </Link>
+        </div>
       </div>
 
-      {orcamentos.length === 0 ? (
+      {modoKanban ? (
+        <KanbanOrcamentos
+          orcamentos={orcamentos.map((orcamento) => ({
+            id: orcamento.id,
+            nome: orcamento.nome,
+            cliente: orcamento.cliente,
+            codigo: orcamento.codigo,
+            status: orcamento.status,
+            totalFormatado: formatarMoeda(totalOrcamento(orcamento.ambientes, orcamento.encargos)),
+            dataFormatada: formatarData(orcamento.criadoEm),
+          }))}
+        />
+      ) : orcamentos.length === 0 ? (
         <p className="rounded-lg border border-dashed border-outline-variant bg-surface-container-lowest p-8 text-center text-body-md text-on-surface-variant">
           Nenhum orçamento cadastrado ainda.
         </p>
