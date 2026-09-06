@@ -20,13 +20,13 @@ export default async function OrcamentosPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-headline-lg text-on-background">Orçamentos</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <ToggleVisualizacao modoKanban={modoKanban} />
           <Link
             href="/orcamentos/novo"
-            className="rounded bg-secondary px-4 py-2 text-body-md font-medium text-on-secondary transition hover:opacity-90"
+            className="whitespace-nowrap rounded bg-secondary px-4 py-2 text-body-md font-medium text-on-secondary transition hover:opacity-90"
           >
             Novo orçamento
           </Link>

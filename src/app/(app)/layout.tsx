@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { logoutAction } from "./actions";
+import { BottomNav } from "./BottomNav";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -21,7 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 className="h-8 w-auto"
               />
             </Link>
-            <nav className="flex gap-6 text-body-md">
+            <nav className="hidden gap-6 text-body-md sm:flex">
               <Link href="/" className="text-on-surface-variant transition hover:text-primary">
                 Painel
               </Link>
@@ -48,7 +49,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6">{children}</main>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 pb-24 sm:px-6 sm:pb-8">{children}</main>
+
+      <BottomNav />
     </div>
   );
 }

@@ -31,7 +31,7 @@ export function KanbanOrcamentos({ orcamentos }: { orcamentos: OrcamentoKanbanIt
   }
 
   return (
-    <div className="flex gap-4 overflow-x-auto pb-2">
+    <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
       {STATUS_ORCAMENTO_ORDEM.map((status) => {
         const doColuna = itens.filter((o) => o.status === status);
         return (
@@ -44,7 +44,7 @@ export function KanbanOrcamentos({ orcamentos }: { orcamentos: OrcamentoKanbanIt
               if (id) mover(id, status);
               setArrastandoId(null);
             }}
-            className="flex w-72 shrink-0 flex-col gap-3 rounded-lg border border-tertiary-fixed bg-surface-container-low p-3"
+            className="flex w-[85vw] shrink-0 snap-center flex-col gap-3 rounded-lg border border-tertiary-fixed bg-surface-container-low p-3 sm:w-72"
           >
             <div className="flex items-center justify-between px-1">
               <h2 className="text-label-bold uppercase tracking-wide text-on-surface-variant">
