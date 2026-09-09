@@ -35,6 +35,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <Link href="/insumos" className="text-on-surface-variant transition hover:text-primary">
                 Insumos
               </Link>
+              <Link href="/formas-pagamento" className="text-on-surface-variant transition hover:text-primary">
+                Pagamentos
+              </Link>
             </nav>
           </div>
 

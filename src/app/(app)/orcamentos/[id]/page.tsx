@@ -3,13 +3,15 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getInsumosAtivos } from "@/lib/insumos-cache";
+import { getFormasPagamentoAtivas } from "@/lib/formas-pagamento-cache";
 import { formatarMoeda, formatarDataHora } from "@/lib/format";
-import { PERCENTUAL_IMPOSTO_NF, calcularItem, totalAmbiente } from "@/lib/orcamentos";
+import { PERCENTUAL_IMPOSTO_NF, calcularItem, totalAmbiente, totalComFormaPagamento } from "@/lib/orcamentos";
 import { calcularValidade } from "@/lib/compartilhamento";
 import { CategoriaInsumo } from "@prisma/client";
 import {
   adicionarComissaoOrcamentoAction,
   adicionarMaterialAction,
+  alternarFormaPagamentoOrcamentoAction,
   aprovarOrcamentoAction,
   atualizarAmbienteAction,
   atualizarCodigoOrcamentoAction,
@@ -114,7 +116,7 @@ export default async function OrcamentoDetalhePage({
 }) {
   const { id } = await params;
 
-  const [orcamento, insumos, hdrs] = await Promise.all([
+  const [orcamento, insumos, formasPagamentoAtivas, hdrs] = await Promise.all([
     prisma.orcamento.findUnique({
       where: { id },
       include: {
@@ -128,11 +130,13 @@ export default async function OrcamentoDetalhePage({
           },
         },
         comissoes: { orderBy: { ordem: "asc" } },
+        formasPagamento: { orderBy: { ordem: "asc" } },
         visualizacoes: { orderBy: { criadoEm: "desc" }, take: 10 },
         _count: { select: { visualizacoes: true } },
       },
     }),
     getInsumosAtivos(),
+    getFormasPagamentoAtivas(),
     headers(),
   ]);
 
@@ -152,6 +156,9 @@ export default async function OrcamentoDetalhePage({
   const gerarLinkComId = gerarLinkCompartilhamentoAction.bind(null, orcamento.id);
   const renovarPrazoComId = renovarPrazoCompartilhamentoAction.bind(null, orcamento.id);
   const revogarLinkComId = revogarLinkCompartilhamentoAction.bind(null, orcamento.id);
+  const formasPagamentoSelecionadasIds = new Set(
+    orcamento.formasPagamento.map((f) => f.formaPagamentoId)
+  );
 
   const protocolo = hdrs.get("x-forwarded-proto") ?? "https";
   const host = hdrs.get("host");
@@ -390,6 +397,59 @@ export default async function OrcamentoDetalhePage({
                       </form>
                     )}
                   </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      <div className={`flex flex-col gap-4 ${CARD}`}>
+        <div className="flex flex-col gap-1.5">
+          <p className={LABEL}>Formas de pagamento</p>
+          <p className="text-body-md text-on-surface-variant">
+            Escolha quais formas de pagamento aparecem para o cliente neste orçamento, com o valor
+            já calculado para cada uma.{" "}
+            <Link href="/formas-pagamento" className={BTN_TEXT}>
+              Gerenciar formas de pagamento
+            </Link>
+          </p>
+        </div>
+
+        {formasPagamentoAtivas.length === 0 ? (
+          <p className="text-body-md text-on-surface-variant">
+            Nenhuma forma de pagamento cadastrada ainda.{" "}
+            <Link href="/formas-pagamento" className={BTN_TEXT}>
+              Cadastrar
+            </Link>
+          </p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-tertiary-fixed rounded-lg border border-tertiary-fixed">
+            {formasPagamentoAtivas.map((forma) => {
+              const selecionada = formasPagamentoSelecionadasIds.has(forma.id);
+              const alternarComId = alternarFormaPagamentoOrcamentoAction.bind(null, orcamento.id, forma.id);
+              const valorCalculado = totalComFormaPagamento(total, forma.percentual);
+              return (
+                <li key={forma.id} className="flex items-center justify-between gap-2 px-4 py-3 text-body-md">
+                  <div className="flex flex-col">
+                    <span className="text-on-background">
+                      {forma.nome}{" "}
+                      <span className="text-on-surface-variant">
+                        ({forma.percentual > 0 ? "+" : ""}
+                        {forma.percentual}%)
+                      </span>
+                    </span>
+                    {selecionada && (
+                      <span className="text-on-surface-variant">{formatarMoeda(valorCalculado)}</span>
+                    )}
+                  </div>
+                  {!jaConvertido && (
+                    <form action={alternarComId}>
+                      <button type="submit" className={selecionada ? BTN_TEXT_DANGER : BTN_TEXT}>
+                        {selecionada ? "Remover" : "Adicionar"}
+                      </button>
+                    </form>
+                  )}
                 </li>
               );
             })}

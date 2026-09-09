@@ -122,9 +122,39 @@ model Orcamento {
   criadoEm          DateTime        @default(now())
   atualizadoEm      DateTime        @updatedAt
 
-  ambientes     Ambiente[]
-  comissoes     ComissaoOrcamento[]
-  visualizacoes VisualizacaoOrcamento[]
+  ambientes       Ambiente[]
+  comissoes       ComissaoOrcamento[]
+  formasPagamento OrcamentoFormaPagamento[]
+  visualizacoes   VisualizacaoOrcamento[]
+}
+
+// Catálogo universal de formas de pagamento (PIX, cartão, boleto etc.),
+// cadastrado uma vez e reaproveitado em todos os orçamentos.
+model FormaPagamento {
+  id           String   @id @default(cuid())
+  nome         String // ex: "PIX", "Cartão de crédito 3x"
+  percentual   Float // acréscimo (+) ou desconto (-) sobre o valor total do orçamento
+  ativo        Boolean  @default(true)
+  ordem        Int      @default(0)
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  selecoes OrcamentoFormaPagamento[]
+}
+
+// Quais formas de pagamento do catálogo aparecem neste orçamento —
+// snapshot do nome/percentual no momento em que foi selecionada.
+model OrcamentoFormaPagamento {
+  id               String          @id @default(cuid())
+  orcamentoId      String
+  orcamento        Orcamento       @relation(fields: [orcamentoId], references: [id], onDelete: Cascade)
+  formaPagamentoId String?
+  formaPagamento   FormaPagamento? @relation(fields: [formaPagamentoId], references: [id])
+  nome             String
+  percentual       Float
+  ordem            Int             @default(0)
+
+  @@unique([orcamentoId, formaPagamentoId])
 }
 
 // Registro de cada abertura do link público pelo cliente, para o "recibo de leitura".

@@ -126,3 +126,9 @@ export function totalInsumosOrcamento(ambientes: { itens: ItemCalc[] }[], comiss
     0
   );
 }
+
+// Formas de pagamento incidem sobre o valor total do orçamento (não por
+// item): é uma decisão tomada no fechamento da compra inteira.
+export function totalComFormaPagamento(total: number, percentual: number): number {
+  return total * (1 + percentual / 100);
+}

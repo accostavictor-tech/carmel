@@ -331,3 +331,29 @@ export async function aprovarOrcamentoAction(orcamentoId: string) {
   revalidatePath("/");
   redirect(`/projetos/${projeto.id}`);
 }
+
+export async function alternarFormaPagamentoOrcamentoAction(orcamentoId: string, formaPagamentoId: string) {
+  const selecionada = await prisma.orcamentoFormaPagamento.findUnique({
+    where: { orcamentoId_formaPagamentoId: { orcamentoId, formaPagamentoId } },
+  });
+
+  if (selecionada) {
+    await prisma.orcamentoFormaPagamento.delete({ where: { id: selecionada.id } });
+  } else {
+    const formaPagamento = await prisma.formaPagamento.findUnique({ where: { id: formaPagamentoId } });
+    if (!formaPagamento) throw new Error("Forma de pagamento não encontrada.");
+
+    const quantidadeAtual = await prisma.orcamentoFormaPagamento.count({ where: { orcamentoId } });
+    await prisma.orcamentoFormaPagamento.create({
+      data: {
+        orcamentoId,
+        formaPagamentoId,
+        nome: formaPagamento.nome,
+        percentual: formaPagamento.percentual,
+        ordem: quantidadeAtual,
+      },
+    });
+  }
+
+  revalidatePath(`/orcamentos/${orcamentoId}`);
+}

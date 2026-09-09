@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { formatarMoeda, formatarData } from "@/lib/format";
-import { calcularItem, totalAmbiente, totalOrcamento } from "@/lib/orcamentos";
+import { calcularItem, totalAmbiente, totalComFormaPagamento, totalOrcamento } from "@/lib/orcamentos";
 import { calcularValidade, pareceBot } from "@/lib/compartilhamento";
 
 async function buscarOrcamento(token: string) {
@@ -21,6 +21,7 @@ async function buscarOrcamento(token: string) {
         },
       },
       comissoes: { orderBy: { ordem: "asc" } },
+      formasPagamento: { orderBy: { ordem: "asc" } },
     },
   });
 }
@@ -155,6 +156,22 @@ export default async function OrcamentoPublicoPage({
           <span className="text-body-md font-medium text-on-primary">Valor total do orçamento</span>
           <span className="text-2xl font-semibold text-on-primary">{formatarMoeda(total)}</span>
         </div>
+
+        {orcamento.formasPagamento.length > 0 && (
+          <div className="flex flex-col gap-1 rounded-lg border border-tertiary-fixed bg-surface-container-lowest p-5 shadow-[0_10px_30px_rgba(29,45,61,0.05)]">
+            <p className="text-label-bold text-on-background">Formas de pagamento</p>
+            <ul className="flex flex-col divide-y divide-tertiary-fixed">
+              {orcamento.formasPagamento.map((forma) => (
+                <li key={forma.id} className="flex items-center justify-between gap-4 py-2.5 text-body-md">
+                  <span className="text-on-background">{forma.nome}</span>
+                  <span className="font-medium text-on-background">
+                    {formatarMoeda(totalComFormaPagamento(total, forma.percentual))}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </main>
 
       <footer className="border-t border-tertiary-fixed px-6 py-6 text-center text-body-md text-on-surface-variant">
