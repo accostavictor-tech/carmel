@@ -20,7 +20,7 @@ async function buscarOrcamento(token: string) {
           },
         },
       },
-      encargos: { orderBy: { ordem: "asc" } },
+      comissoes: { orderBy: { ordem: "asc" } },
     },
   });
 }
@@ -54,7 +54,7 @@ export default async function OrcamentoPublicoPage({
     }).catch(() => {});
   }
 
-  const total = totalOrcamento(orcamento.ambientes, orcamento.encargos);
+  const total = totalOrcamento(orcamento.ambientes, orcamento.comissoes);
   const validade = orcamento.compartilhadoEm ? calcularValidade(orcamento.compartilhadoEm) : null;
 
   return (
@@ -115,7 +115,7 @@ export default async function OrcamentoPublicoPage({
 
         <div className="flex flex-col gap-6 rounded-lg border border-tertiary-fixed bg-surface-container-lowest shadow-[0_10px_30px_rgba(29,45,61,0.05)]">
           {orcamento.ambientes.map((ambiente) => {
-            const totalDoAmbiente = totalAmbiente(ambiente.itens, orcamento.encargos);
+            const totalDoAmbiente = totalAmbiente(ambiente.itens, orcamento.comissoes);
 
             return (
               <div key={ambiente.id} className="flex flex-col border-b border-tertiary-fixed last:border-0">
@@ -125,7 +125,7 @@ export default async function OrcamentoPublicoPage({
 
                 <ul className="flex flex-col divide-y divide-tertiary-fixed">
                   {ambiente.itens.map((item) => {
-                    const resultadoItem = calcularItem(item, orcamento.encargos);
+                    const resultadoItem = calcularItem(item, orcamento.comissoes);
                     return (
                       <li key={item.id} className="flex items-start justify-between gap-4 px-5 py-3 text-body-md">
                         <div>

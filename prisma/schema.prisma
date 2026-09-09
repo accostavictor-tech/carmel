@@ -113,7 +113,6 @@ model Orcamento {
   clienteTelefone   String?
   clienteEmail      String?
   status            StatusOrcamento @default(RASCUNHO)
-  percentualImposto Float           @default(0)
   responsavelId     String?
   responsavel       Usuario?        @relation("OrcamentoResponsavel", fields: [responsavelId], references: [id])
   projetoId         String?         @unique
@@ -124,7 +123,7 @@ model Orcamento {
   atualizadoEm      DateTime        @updatedAt
 
   ambientes     Ambiente[]
-  encargos      EncargoOrcamento[]
+  comissoes     ComissaoOrcamento[]
   visualizacoes VisualizacaoOrcamento[]
 }
 
@@ -175,15 +174,16 @@ model ItemMaterial {
   quantidade      Float
 }
 
-// Comissões, vendedores, sócios, cartão etc. — definidos uma vez para todo o
-// orçamento e aplicados em cascata sobre o valor de venda de cada ambiente.
-model EncargoOrcamento {
+// Comissões (vendedor, sócios etc.) — definidas uma vez para todo o orçamento
+// e somadas sobre o valor de venda de cada item. Imposto (NF) é fixo no motor
+// de cálculo (PERCENTUAL_IMPOSTO_NF em src/lib/orcamentos.ts), não fica aqui;
+// taxas de cartão serão tratadas nas formas de pagamento (futuro).
+model ComissaoOrcamento {
   id          String    @id @default(cuid())
   orcamentoId String
   orcamento   Orcamento @relation(fields: [orcamentoId], references: [id], onDelete: Cascade)
-  nome        String // ex: "Lane", "Margem", "Nota Fiscal"
+  nome        String // ex: "Lane", "Ronilvo"
   percentual  Float
-  nivel       Int       @default(1) // encargos do mesmo nível incidem sobre a mesma base e se somam; níveis cascateiam entre si
   ordem       Int       @default(0)
 }
 

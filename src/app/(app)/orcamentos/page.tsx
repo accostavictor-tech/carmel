@@ -14,7 +14,7 @@ export default async function OrcamentosPage({
   const modoKanban = view === "kanban";
 
   const orcamentos = await prisma.orcamento.findMany({
-    include: { ambientes: { include: { itens: { include: { materiais: true } } } }, encargos: true },
+    include: { ambientes: { include: { itens: { include: { materiais: true } } } }, comissoes: true },
     orderBy: { criadoEm: "desc" },
   });
 
@@ -41,7 +41,7 @@ export default async function OrcamentosPage({
             cliente: orcamento.cliente,
             codigo: orcamento.codigo,
             status: orcamento.status,
-            totalFormatado: formatarMoeda(totalOrcamento(orcamento.ambientes, orcamento.encargos)),
+            totalFormatado: formatarMoeda(totalOrcamento(orcamento.ambientes, orcamento.comissoes)),
             dataFormatada: formatarData(orcamento.criadoEm),
           }))}
         />
@@ -52,7 +52,7 @@ export default async function OrcamentosPage({
       ) : (
         <ul className="flex flex-col gap-3">
           {orcamentos.map((orcamento) => {
-            const total = totalOrcamento(orcamento.ambientes, orcamento.encargos);
+            const total = totalOrcamento(orcamento.ambientes, orcamento.comissoes);
             return (
               <li key={orcamento.id}>
                 <Link

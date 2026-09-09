@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { StatusOrcamento, CategoriaCusto } from "@prisma/client";
-import { totalInsumosOrcamento, totalOrcamento } from "@/lib/orcamentos";
+import { PERCENTUAL_IMPOSTO_NF, totalInsumosOrcamento, totalOrcamento } from "@/lib/orcamentos";
 import { gerarLinkToken } from "@/lib/compartilhamento";
 import { gerarProximoCodigo } from "@/lib/codigo-orcamento";
 
@@ -102,17 +102,6 @@ export async function atualizarStatusOrcamentoAction(orcamentoId: string, status
 
   revalidatePath(`/orcamentos/${orcamentoId}`);
   revalidatePath("/orcamentos");
-}
-
-export async function atualizarImpostoOrcamentoAction(orcamentoId: string, formData: FormData) {
-  const percentualImposto = numeroDeFormData(formData, "percentualImposto");
-
-  await prisma.orcamento.update({
-    where: { id: orcamentoId },
-    data: { percentualImposto },
-  });
-
-  revalidatePath(`/orcamentos/${orcamentoId}`);
 }
 
 export async function criarAmbienteAction(orcamentoId: string, formData: FormData) {
@@ -240,26 +229,25 @@ export async function removerMaterialAction(orcamentoId: string, materialId: str
   revalidatePath(`/orcamentos/${orcamentoId}`);
 }
 
-export async function adicionarEncargoOrcamentoAction(orcamentoId: string, formData: FormData) {
+export async function adicionarComissaoOrcamentoAction(orcamentoId: string, formData: FormData) {
   const nome = String(formData.get("nome") ?? "").trim();
   const percentual = numeroDeFormData(formData, "percentual");
-  const nivel = Math.max(1, Math.round(numeroDeFormData(formData, "nivel")) || 1);
 
   if (!nome) {
-    throw new Error("Dê um nome ao encargo.");
+    throw new Error("Dê um nome à comissão.");
   }
 
-  const quantidadeAtual = await prisma.encargoOrcamento.count({ where: { orcamentoId } });
+  const quantidadeAtual = await prisma.comissaoOrcamento.count({ where: { orcamentoId } });
 
-  await prisma.encargoOrcamento.create({
-    data: { orcamentoId, nome, percentual, nivel, ordem: quantidadeAtual },
+  await prisma.comissaoOrcamento.create({
+    data: { orcamentoId, nome, percentual, ordem: quantidadeAtual },
   });
 
   revalidatePath(`/orcamentos/${orcamentoId}`);
 }
 
-export async function removerEncargoOrcamentoAction(orcamentoId: string, encargoId: string) {
-  await prisma.encargoOrcamento.delete({ where: { id: encargoId } });
+export async function removerComissaoOrcamentoAction(orcamentoId: string, comissaoId: string) {
+  await prisma.comissaoOrcamento.delete({ where: { id: comissaoId } });
   revalidatePath(`/orcamentos/${orcamentoId}`);
 }
 
@@ -304,14 +292,14 @@ export async function aprovarOrcamentoAction(orcamentoId: string) {
 
   const orcamento = await prisma.orcamento.findUnique({
     where: { id: orcamentoId },
-    include: { ambientes: { include: { itens: { include: { materiais: true } } } }, encargos: true },
+    include: { ambientes: { include: { itens: { include: { materiais: true } } } }, comissoes: true },
   });
 
   if (!orcamento) throw new Error("Orçamento não encontrado.");
   if (orcamento.projetoId) throw new Error("Este orçamento já foi convertido em projeto.");
 
-  const valorVenda = totalOrcamento(orcamento.ambientes, orcamento.encargos);
-  const totalInsumos = totalInsumosOrcamento(orcamento.ambientes, orcamento.encargos);
+  const valorVenda = totalOrcamento(orcamento.ambientes, orcamento.comissoes);
+  const totalInsumos = totalInsumosOrcamento(orcamento.ambientes, orcamento.comissoes);
 
   const hoje = new Date();
   const prazoEntrega = new Date(hoje);
@@ -322,7 +310,7 @@ export async function aprovarOrcamentoAction(orcamentoId: string) {
       nome: orcamento.nome,
       cliente: orcamento.cliente,
       valorVenda,
-      percentualImposto: orcamento.percentualImposto,
+      percentualImposto: PERCENTUAL_IMPOSTO_NF,
       dataFechamento: hoje,
       prazoEntrega,
       responsavelId: session.user.id,

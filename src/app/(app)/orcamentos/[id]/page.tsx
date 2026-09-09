@@ -4,24 +4,23 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getInsumosAtivos } from "@/lib/insumos-cache";
 import { formatarMoeda, formatarDataHora } from "@/lib/format";
-import { calcularItem, totalAmbiente } from "@/lib/orcamentos";
+import { PERCENTUAL_IMPOSTO_NF, calcularItem, totalAmbiente } from "@/lib/orcamentos";
 import { calcularValidade } from "@/lib/compartilhamento";
 import { CategoriaInsumo } from "@prisma/client";
 import {
-  adicionarEncargoOrcamentoAction,
+  adicionarComissaoOrcamentoAction,
   adicionarMaterialAction,
   aprovarOrcamentoAction,
   atualizarAmbienteAction,
   atualizarCodigoOrcamentoAction,
   atualizarContatoOrcamentoAction,
-  atualizarImpostoOrcamentoAction,
   atualizarItemAction,
   atualizarLucroItemAction,
   criarAmbienteAction,
   criarItemAction,
   gerarLinkCompartilhamentoAction,
   removerAmbienteAction,
-  removerEncargoOrcamentoAction,
+  removerComissaoOrcamentoAction,
   removerItemAction,
   removerMaterialAction,
   renovarPrazoCompartilhamentoAction,
@@ -50,7 +49,7 @@ type Insumo = {
   percentualPerda: number;
 };
 
-type Encargo = { id: string; nome: string; percentual: number; nivel: number; ordem: number };
+type Comissao = { id: string; nome: string; percentual: number; ordem: number };
 
 type Material = {
   id: string;
@@ -128,7 +127,7 @@ export default async function OrcamentoDetalhePage({
             },
           },
         },
-        encargos: { orderBy: { ordem: "asc" } },
+        comissoes: { orderBy: { ordem: "asc" } },
         visualizacoes: { orderBy: { criadoEm: "desc" }, take: 10 },
         _count: { select: { visualizacoes: true } },
       },
@@ -140,22 +139,19 @@ export default async function OrcamentoDetalhePage({
   if (!orcamento) notFound();
 
   const total = orcamento.ambientes.reduce(
-    (soma, ambiente) => soma + totalAmbiente(ambiente.itens, orcamento.encargos),
+    (soma, ambiente) => soma + totalAmbiente(ambiente.itens, orcamento.comissoes),
     0
   );
-  const totalComImposto = total - total * (orcamento.percentualImposto / 100);
   const jaConvertido = Boolean(orcamento.projetoId);
 
   const criarAmbienteComId = criarAmbienteAction.bind(null, orcamento.id);
   const aprovarComId = aprovarOrcamentoAction.bind(null, orcamento.id);
   const atualizarCodigoComId = atualizarCodigoOrcamentoAction.bind(null, orcamento.id);
   const atualizarContatoComId = atualizarContatoOrcamentoAction.bind(null, orcamento.id);
-  const atualizarImpostoComId = atualizarImpostoOrcamentoAction.bind(null, orcamento.id);
-  const adicionarEncargoComId = adicionarEncargoOrcamentoAction.bind(null, orcamento.id);
+  const adicionarComissaoComId = adicionarComissaoOrcamentoAction.bind(null, orcamento.id);
   const gerarLinkComId = gerarLinkCompartilhamentoAction.bind(null, orcamento.id);
   const renovarPrazoComId = renovarPrazoCompartilhamentoAction.bind(null, orcamento.id);
   const revogarLinkComId = revogarLinkCompartilhamentoAction.bind(null, orcamento.id);
-  const proximoNivelEncargo = orcamento.encargos.reduce((max, e) => Math.max(max, e.nivel), 0) + 1;
 
   const protocolo = hdrs.get("x-forwarded-proto") ?? "https";
   const host = hdrs.get("host");
@@ -196,11 +192,7 @@ export default async function OrcamentoDetalhePage({
         <div className="flex flex-col gap-1">
           <p className={FIELD_LABEL}>Valor total do orçamento</p>
           <p className="text-2xl font-semibold text-on-background">{formatarMoeda(total)}</p>
-          {orcamento.percentualImposto > 0 && (
-            <p className="text-body-md text-on-surface-variant">
-              Líquido (-{orcamento.percentualImposto}%): {formatarMoeda(totalComImposto)}
-            </p>
-          )}
+          <p className="text-body-md text-on-surface-variant">Já inclui comissões e o imposto da NF</p>
         </div>
 
         <Field label="Status">
@@ -353,58 +345,25 @@ export default async function OrcamentoDetalhePage({
 
       <div className={`flex flex-col gap-4 ${CARD}`}>
         <div className="flex flex-col gap-1.5">
-          <p className={LABEL}>Impostos e comissões do orçamento</p>
+          <p className={LABEL}>Comissões do orçamento</p>
           <p className="text-body-md text-on-surface-variant">
-            Definidos uma única vez aqui e aplicados sobre o valor de venda de todos os itens.
+            Definidas uma única vez aqui e somadas sobre o valor de venda de todos os itens.
             Adicione uma comissão por pessoa (vendedor, sócio, etc.) — pode ser nenhuma, uma ou
-            várias. Encargos com o mesmo nível incidem sobre a mesma base e se somam; o próximo
-            nível cascateia sobre o resultado.
+            várias. O imposto da nota fiscal ({PERCENTUAL_IMPOSTO_NF}%) já é aplicado
+            automaticamente e não entra aqui.
           </p>
         </div>
 
-        <form action={atualizarImpostoComId} className={`flex items-end gap-3 ${PAINEL}`}>
-          <Field label="Imposto (%)" htmlFor="percentualImposto">
-            <input
-              id="percentualImposto"
-              name="percentualImposto"
-              type="number"
-              step="0.01"
-              min="0"
-              max="100"
-              defaultValue={orcamento.percentualImposto}
-              disabled={jaConvertido}
-              className={`${INPUT} w-32`}
-            />
-          </Field>
-          {!jaConvertido && (
-            <button type="submit" className={`${BTN_TEXT} h-10`}>
-              Salvar
-            </button>
-          )}
-        </form>
-
         {!jaConvertido && (
           <form
-            action={adicionarEncargoComId}
-            className={`grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,0.7fr)_minmax(0,0.7fr)_auto] sm:items-end ${PAINEL}`}
+            action={adicionarComissaoComId}
+            className={`grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,0.7fr)_auto] sm:items-end ${PAINEL}`}
           >
-            <Field label="Nome do encargo" htmlFor="orc-encargoNome">
-              <input id="orc-encargoNome" name="nome" placeholder="Ex: Comissão, Cartão, Sócios" required className={INPUT} />
+            <Field label="Nome da comissão" htmlFor="orc-comissaoNome">
+              <input id="orc-comissaoNome" name="nome" placeholder="Ex: Vendedor, Sócio" required className={INPUT} />
             </Field>
-            <Field label="Percentual (%)" htmlFor="orc-encargoPct">
-              <input id="orc-encargoPct" name="percentual" type="number" step="0.01" min="0" required className={INPUT} />
-            </Field>
-            <Field label="Nível" htmlFor="orc-encargoNivel">
-              <input
-                id="orc-encargoNivel"
-                name="nivel"
-                type="number"
-                step="1"
-                min="1"
-                defaultValue={proximoNivelEncargo}
-                title="Encargos do mesmo nível somam sobre a mesma base"
-                className={INPUT}
-              />
+            <Field label="Percentual (%)" htmlFor="orc-comissaoPct">
+              <input id="orc-comissaoPct" name="percentual" type="number" step="0.01" min="0" required className={INPUT} />
             </Field>
             <button type="submit" className={BTN_PRIMARY}>
               Adicionar
@@ -412,21 +371,19 @@ export default async function OrcamentoDetalhePage({
           </form>
         )}
 
-        {orcamento.encargos.length === 0 ? (
-          <p className="text-body-md text-on-surface-variant">Nenhum encargo lançado.</p>
+        {orcamento.comissoes.length === 0 ? (
+          <p className="text-body-md text-on-surface-variant">Nenhuma comissão lançada.</p>
         ) : (
           <ul className="flex flex-col divide-y divide-tertiary-fixed rounded-lg border border-tertiary-fixed">
-            {orcamento.encargos.map((encargo) => {
-              const removerEncargoComId = removerEncargoOrcamentoAction.bind(null, orcamento.id, encargo.id);
+            {orcamento.comissoes.map((comissao) => {
+              const removerComissaoComId = removerComissaoOrcamentoAction.bind(null, orcamento.id, comissao.id);
               return (
-                <li key={encargo.id} className="flex items-center justify-between gap-2 px-4 py-3 text-body-md">
-                  <span className="text-on-background">
-                    {encargo.nome} <span className="text-on-surface-variant">· nível {encargo.nivel}</span>
-                  </span>
+                <li key={comissao.id} className="flex items-center justify-between gap-2 px-4 py-3 text-body-md">
+                  <span className="text-on-background">{comissao.nome}</span>
                   <div className="flex items-center gap-4">
-                    <span className="text-on-surface-variant">{encargo.percentual}%</span>
+                    <span className="text-on-surface-variant">{comissao.percentual}%</span>
                     {!jaConvertido && (
-                      <form action={removerEncargoComId}>
+                      <form action={removerComissaoComId}>
                         <button type="submit" className={BTN_TEXT_DANGER}>
                           Remover
                         </button>
@@ -447,7 +404,7 @@ export default async function OrcamentoDetalhePage({
             orcamentoId={orcamento.id}
             ambiente={ambiente}
             insumos={insumos}
-            encargos={orcamento.encargos}
+            comissoes={orcamento.comissoes}
             bloqueado={jaConvertido}
             abertoPorPadrao={index === orcamento.ambientes.length - 1}
           />
@@ -478,18 +435,18 @@ function AmbienteCard({
   orcamentoId,
   ambiente,
   insumos,
-  encargos,
+  comissoes,
   bloqueado,
   abertoPorPadrao,
 }: {
   orcamentoId: string;
   ambiente: Ambiente;
   insumos: Insumo[];
-  encargos: Encargo[];
+  comissoes: Comissao[];
   bloqueado: boolean;
   abertoPorPadrao: boolean;
 }) {
-  const totalAmbienteValor = totalAmbiente(ambiente.itens, encargos);
+  const totalAmbienteValor = totalAmbiente(ambiente.itens, comissoes);
   const uid = ambiente.id;
 
   const atualizarComId = atualizarAmbienteAction.bind(null, orcamentoId, ambiente.id);
@@ -553,7 +510,7 @@ function AmbienteCard({
               orcamentoId={orcamentoId}
               item={item}
               insumos={insumos}
-              encargos={encargos}
+              comissoes={comissoes}
               bloqueado={bloqueado}
               abertoPorPadrao={index === ambiente.itens.length - 1}
             />
@@ -585,18 +542,18 @@ function ItemCard({
   orcamentoId,
   item,
   insumos,
-  encargos,
+  comissoes,
   bloqueado,
   abertoPorPadrao,
 }: {
   orcamentoId: string;
   item: Item;
   insumos: Insumo[];
-  encargos: Encargo[];
+  comissoes: Comissao[];
   bloqueado: boolean;
   abertoPorPadrao: boolean;
 }) {
-  const resultado = calcularItem(item, encargos);
+  const resultado = calcularItem(item, comissoes);
   const uid = item.id;
 
   const atualizarComId = atualizarItemAction.bind(null, orcamentoId, item.id);
@@ -795,38 +752,39 @@ function ItemCard({
           </div>
         </div>
 
-        {/* 3. Comissões e encargos (definidos no orçamento) */}
+        {/* 3. Comissões e imposto (comissões definidas no orçamento; imposto é fixo) */}
         <div className="flex flex-col gap-4 border-t border-tertiary-fixed pt-6">
           <div className="flex flex-col gap-1.5">
-            <StepHeading numero={3} titulo="Comissões e encargos" />
+            <StepHeading numero={3} titulo="Comissões e imposto" />
             <p className="pl-8 text-body-md text-on-surface-variant">
-              Definidos no topo do orçamento e aplicados aqui automaticamente.
+              Comissões definidas no topo do orçamento; imposto da NF fixo em {PERCENTUAL_IMPOSTO_NF}%.
+              Aplicados aqui automaticamente.
             </p>
           </div>
 
-          {encargos.length === 0 ? (
-            <p className="text-body-md text-on-surface-variant">Nenhum encargo lançado no orçamento.</p>
-          ) : (
-            <div className="flex flex-col divide-y divide-tertiary-fixed rounded-lg border border-tertiary-fixed">
-              {resultado.niveis.map((nivelCalc) => (
-                <div key={nivelCalc.nivel} className="flex flex-col gap-2 px-4 py-3">
-                  <div className="flex items-center justify-between">
-                    <span className={FIELD_LABEL}>Nível {nivelCalc.nivel}</span>
-                    <span className="text-body-md text-on-surface-variant">
-                      base {formatarMoeda(nivelCalc.baseInicial)}
-                    </span>
-                  </div>
-                  {nivelCalc.encargos.map((encargo) => (
+          <div className="flex flex-col divide-y divide-tertiary-fixed rounded-lg border border-tertiary-fixed">
+            {resultado.niveis.map((nivelCalc) => (
+              <div key={nivelCalc.nivel} className="flex flex-col gap-2 px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <span className={FIELD_LABEL}>{nivelCalc.nivel === 1 ? "Comissões" : "Imposto"}</span>
+                  <span className="text-body-md text-on-surface-variant">
+                    base {formatarMoeda(nivelCalc.baseInicial)}
+                  </span>
+                </div>
+                {nivelCalc.encargos.length === 0 ? (
+                  <p className="text-body-md text-on-surface-variant">Nenhuma comissão lançada.</p>
+                ) : (
+                  nivelCalc.encargos.map((encargo) => (
                     <div key={encargo.nome} className="flex items-center justify-between gap-2 text-body-md">
                       <span className="text-on-background">{encargo.nome}</span>
                       <span className="text-on-surface-variant">{encargo.percentual}%</span>
                     </div>
-                  ))}
-                  <Linha nome={`Subtotal (nível ${nivelCalc.nivel})`} valor={nivelCalc.subtotal} destaque />
-                </div>
-              ))}
-            </div>
-          )}
+                  ))
+                )}
+                <Linha nome="Subtotal" valor={nivelCalc.subtotal} destaque />
+              </div>
+            ))}
+          </div>
 
           <div className="rounded-lg border border-tertiary-fixed bg-tertiary-fixed px-4 py-3">
             <Linha nome="Valor de venda do item" valor={resultado.totalFinal} destaque grande />
