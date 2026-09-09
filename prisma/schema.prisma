@@ -179,16 +179,25 @@ model Ambiente {
 // Um móvel/peça dentro do ambiente (ex: "Prateleira", "Rack"). É o item que
 // aparece com nome, descrição e valor no orçamento e no link do cliente.
 model Item {
-  id                      String   @id @default(cuid())
-  ambienteId              String
-  ambiente                Ambiente @relation(fields: [ambienteId], references: [id], onDelete: Cascade)
-  nome                    String // ex: "Prateleira", "Rack"
-  descricao               String? // texto mostrado ao cliente no link público, no lugar da lista de materiais
-  percentualInsumosGerais Float    @default(5)
-  percentualLucro         Float    @default(0)
-  ordem                   Int      @default(0)
+  id              String   @id @default(cuid())
+  ambienteId      String
+  ambiente        Ambiente @relation(fields: [ambienteId], references: [id], onDelete: Cascade)
+  nome            String // ex: "Prateleira", "Rack"
+  descricao       String? // texto mostrado ao cliente no link público, no lugar da lista de materiais
+  percentualLucro Float    @default(0)
+  ordem           Int      @default(0)
 
   materiais ItemMaterial[]
+}
+
+// Configurações globais do motor de cálculo de orçamento — uma única linha
+// (id fixo "global"), editável em /configuracoes, aplicada em cascata a
+// todos os orçamentos (novos e já existentes) sem precisar editar um a um.
+model ConfiguracaoOrcamento {
+  id                      String   @id @default("global")
+  percentualImpostoNF     Float    @default(7)
+  percentualInsumosGerais Float    @default(5)
+  atualizadoEm            DateTime @updatedAt
 }
 
 model ItemMaterial {

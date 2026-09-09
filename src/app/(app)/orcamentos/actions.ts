@@ -5,9 +5,10 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { StatusOrcamento, CategoriaCusto } from "@prisma/client";
-import { PERCENTUAL_IMPOSTO_NF, totalInsumosOrcamento, totalOrcamento } from "@/lib/orcamentos";
+import { totalInsumosOrcamento, totalOrcamento } from "@/lib/orcamentos";
 import { gerarLinkToken } from "@/lib/compartilhamento";
 import { gerarProximoCodigo } from "@/lib/codigo-orcamento";
+import { getConfiguracaoOrcamento } from "@/lib/configuracao-orcamento";
 
 function numeroDeFormData(formData: FormData, campo: string): number {
   const bruto = String(formData.get(campo) ?? "0").replace(",", ".");
@@ -298,8 +299,9 @@ export async function aprovarOrcamentoAction(orcamentoId: string) {
   if (!orcamento) throw new Error("Orçamento não encontrado.");
   if (orcamento.projetoId) throw new Error("Este orçamento já foi convertido em projeto.");
 
-  const valorVenda = totalOrcamento(orcamento.ambientes, orcamento.comissoes);
-  const totalInsumos = totalInsumosOrcamento(orcamento.ambientes, orcamento.comissoes);
+  const config = await getConfiguracaoOrcamento();
+  const valorVenda = totalOrcamento(orcamento.ambientes, orcamento.comissoes, config);
+  const totalInsumos = totalInsumosOrcamento(orcamento.ambientes, orcamento.comissoes, config);
 
   const hoje = new Date();
   const prazoEntrega = new Date(hoje);
@@ -310,7 +312,7 @@ export async function aprovarOrcamentoAction(orcamentoId: string) {
       nome: orcamento.nome,
       cliente: orcamento.cliente,
       valorVenda,
-      percentualImposto: PERCENTUAL_IMPOSTO_NF,
+      percentualImposto: config.percentualImpostoNF,
       dataFechamento: hoje,
       prazoEntrega,
       responsavelId: session.user.id,

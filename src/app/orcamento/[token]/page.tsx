@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { formatarMoeda, formatarData } from "@/lib/format";
 import { calcularItem, totalAmbiente, totalComFormaPagamento, totalOrcamento } from "@/lib/orcamentos";
 import { calcularValidade, pareceBot } from "@/lib/compartilhamento";
+import { getConfiguracaoOrcamento } from "@/lib/configuracao-orcamento";
 
 async function buscarOrcamento(token: string) {
   return prisma.orcamento.findUnique({
@@ -43,7 +44,7 @@ export default async function OrcamentoPublicoPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const orcamento = await buscarOrcamento(token);
+  const [orcamento, config] = await Promise.all([buscarOrcamento(token), getConfiguracaoOrcamento()]);
 
   if (!orcamento) notFound();
 
@@ -55,7 +56,7 @@ export default async function OrcamentoPublicoPage({
     }).catch(() => {});
   }
 
-  const total = totalOrcamento(orcamento.ambientes, orcamento.comissoes);
+  const total = totalOrcamento(orcamento.ambientes, orcamento.comissoes, config);
   const validade = orcamento.compartilhadoEm ? calcularValidade(orcamento.compartilhadoEm) : null;
 
   return (
@@ -116,7 +117,7 @@ export default async function OrcamentoPublicoPage({
 
         <div className="flex flex-col gap-6 rounded-lg border border-tertiary-fixed bg-surface-container-lowest shadow-[0_10px_30px_rgba(29,45,61,0.05)]">
           {orcamento.ambientes.map((ambiente) => {
-            const totalDoAmbiente = totalAmbiente(ambiente.itens, orcamento.comissoes);
+            const totalDoAmbiente = totalAmbiente(ambiente.itens, orcamento.comissoes, config);
 
             return (
               <div key={ambiente.id} className="flex flex-col border-b border-tertiary-fixed last:border-0">
@@ -126,7 +127,7 @@ export default async function OrcamentoPublicoPage({
 
                 <ul className="flex flex-col divide-y divide-tertiary-fixed">
                   {ambiente.itens.map((item) => {
-                    const resultadoItem = calcularItem(item, orcamento.comissoes);
+                    const resultadoItem = calcularItem(item, orcamento.comissoes, config);
                     return (
                       <li key={item.id} className="flex items-start justify-between gap-4 px-5 py-3 text-body-md">
                         <div>

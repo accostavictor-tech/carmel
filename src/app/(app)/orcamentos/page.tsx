@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatarMoeda, formatarData } from "@/lib/format";
 import { STATUS_ORCAMENTO_LABELS, totalOrcamento } from "@/lib/orcamentos";
+import { getConfiguracaoOrcamento } from "@/lib/configuracao-orcamento";
 import { KanbanOrcamentos } from "./KanbanOrcamentos";
 import { ToggleVisualizacao } from "./ToggleVisualizacao";
 
@@ -13,10 +14,13 @@ export default async function OrcamentosPage({
   const { view } = await searchParams;
   const modoKanban = view === "kanban";
 
-  const orcamentos = await prisma.orcamento.findMany({
-    include: { ambientes: { include: { itens: { include: { materiais: true } } } }, comissoes: true },
-    orderBy: { criadoEm: "desc" },
-  });
+  const [orcamentos, config] = await Promise.all([
+    prisma.orcamento.findMany({
+      include: { ambientes: { include: { itens: { include: { materiais: true } } } }, comissoes: true },
+      orderBy: { criadoEm: "desc" },
+    }),
+    getConfiguracaoOrcamento(),
+  ]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -41,7 +45,7 @@ export default async function OrcamentosPage({
             cliente: orcamento.cliente,
             codigo: orcamento.codigo,
             status: orcamento.status,
-            totalFormatado: formatarMoeda(totalOrcamento(orcamento.ambientes, orcamento.comissoes)),
+            totalFormatado: formatarMoeda(totalOrcamento(orcamento.ambientes, orcamento.comissoes, config)),
             dataFormatada: formatarData(orcamento.criadoEm),
           }))}
         />
@@ -52,7 +56,7 @@ export default async function OrcamentosPage({
       ) : (
         <ul className="flex flex-col gap-3">
           {orcamentos.map((orcamento) => {
-            const total = totalOrcamento(orcamento.ambientes, orcamento.comissoes);
+            const total = totalOrcamento(orcamento.ambientes, orcamento.comissoes, config);
             return (
               <li key={orcamento.id}>
                 <Link

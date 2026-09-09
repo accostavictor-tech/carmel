@@ -5,8 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { getInsumosAtivos } from "@/lib/insumos-cache";
 import { getFormasPagamentoAtivas } from "@/lib/formas-pagamento-cache";
 import { formatarMoeda, formatarDataHora } from "@/lib/format";
-import { PERCENTUAL_IMPOSTO_NF, calcularItem, totalAmbiente, totalComFormaPagamento } from "@/lib/orcamentos";
+import { calcularItem, totalAmbiente, totalComFormaPagamento, type ConfiguracaoCalc } from "@/lib/orcamentos";
 import { calcularValidade } from "@/lib/compartilhamento";
+import { getConfiguracaoOrcamento } from "@/lib/configuracao-orcamento";
 import { CategoriaInsumo } from "@prisma/client";
 import {
   adicionarComissaoOrcamentoAction,
@@ -66,7 +67,6 @@ type Item = {
   id: string;
   nome: string;
   descricao: string | null;
-  percentualInsumosGerais: number;
   percentualLucro: number;
   materiais: Material[];
 };
@@ -116,7 +116,7 @@ export default async function OrcamentoDetalhePage({
 }) {
   const { id } = await params;
 
-  const [orcamento, insumos, formasPagamentoAtivas, hdrs] = await Promise.all([
+  const [orcamento, insumos, formasPagamentoAtivas, config, hdrs] = await Promise.all([
     prisma.orcamento.findUnique({
       where: { id },
       include: {
@@ -137,13 +137,14 @@ export default async function OrcamentoDetalhePage({
     }),
     getInsumosAtivos(),
     getFormasPagamentoAtivas(),
+    getConfiguracaoOrcamento(),
     headers(),
   ]);
 
   if (!orcamento) notFound();
 
   const total = orcamento.ambientes.reduce(
-    (soma, ambiente) => soma + totalAmbiente(ambiente.itens, orcamento.comissoes),
+    (soma, ambiente) => soma + totalAmbiente(ambiente.itens, orcamento.comissoes, config),
     0
   );
   const jaConvertido = Boolean(orcamento.projetoId);
@@ -356,8 +357,12 @@ export default async function OrcamentoDetalhePage({
           <p className="text-body-md text-on-surface-variant">
             Definidas uma única vez aqui e somadas sobre o valor de venda de todos os itens.
             Adicione uma comissão por pessoa (vendedor, sócio, etc.) — pode ser nenhuma, uma ou
-            várias. O imposto da nota fiscal ({PERCENTUAL_IMPOSTO_NF}%) já é aplicado
-            automaticamente e não entra aqui.
+            várias. O imposto da nota fiscal ({config.percentualImpostoNF}%) já é aplicado
+            automaticamente e não entra aqui — para mudar essa e outras taxas globais, veja{" "}
+            <Link href="/configuracoes" className={BTN_TEXT}>
+              Configurações
+            </Link>
+            .
           </p>
         </div>
 
@@ -465,6 +470,7 @@ export default async function OrcamentoDetalhePage({
             ambiente={ambiente}
             insumos={insumos}
             comissoes={orcamento.comissoes}
+            config={config}
             bloqueado={jaConvertido}
             abertoPorPadrao={index === orcamento.ambientes.length - 1}
           />
@@ -496,6 +502,7 @@ function AmbienteCard({
   ambiente,
   insumos,
   comissoes,
+  config,
   bloqueado,
   abertoPorPadrao,
 }: {
@@ -503,10 +510,11 @@ function AmbienteCard({
   ambiente: Ambiente;
   insumos: Insumo[];
   comissoes: Comissao[];
+  config: ConfiguracaoCalc;
   bloqueado: boolean;
   abertoPorPadrao: boolean;
 }) {
-  const totalAmbienteValor = totalAmbiente(ambiente.itens, comissoes);
+  const totalAmbienteValor = totalAmbiente(ambiente.itens, comissoes, config);
   const uid = ambiente.id;
 
   const atualizarComId = atualizarAmbienteAction.bind(null, orcamentoId, ambiente.id);
@@ -571,6 +579,7 @@ function AmbienteCard({
               item={item}
               insumos={insumos}
               comissoes={comissoes}
+              config={config}
               bloqueado={bloqueado}
               abertoPorPadrao={index === ambiente.itens.length - 1}
             />
@@ -603,6 +612,7 @@ function ItemCard({
   item,
   insumos,
   comissoes,
+  config,
   bloqueado,
   abertoPorPadrao,
 }: {
@@ -610,10 +620,11 @@ function ItemCard({
   item: Item;
   insumos: Insumo[];
   comissoes: Comissao[];
+  config: ConfiguracaoCalc;
   bloqueado: boolean;
   abertoPorPadrao: boolean;
 }) {
-  const resultado = calcularItem(item, comissoes);
+  const resultado = calcularItem(item, comissoes, config);
   const uid = item.id;
 
   const atualizarComId = atualizarItemAction.bind(null, orcamentoId, item.id);
@@ -803,7 +814,7 @@ function ItemCard({
 
           <div className="flex flex-col gap-1">
             <Linha
-              nome={`+ Insumos gerais (${item.percentualInsumosGerais}%)`}
+              nome={`+ Insumos gerais (${config.percentualInsumosGerais}%)`}
               valor={resultado.totalCompra - resultado.totalMateriais}
             />
             <Linha nome="Total compra" valor={resultado.totalCompra} destaque />
@@ -817,8 +828,8 @@ function ItemCard({
           <div className="flex flex-col gap-1.5">
             <StepHeading numero={3} titulo="Comissões e imposto" />
             <p className="pl-8 text-body-md text-on-surface-variant">
-              Comissões definidas no topo do orçamento; imposto da NF fixo em {PERCENTUAL_IMPOSTO_NF}%.
-              Aplicados aqui automaticamente.
+              Comissões definidas no topo do orçamento; imposto da NF em {config.percentualImpostoNF}%
+              (configurações globais). Aplicados aqui automaticamente.
             </p>
           </div>
 
