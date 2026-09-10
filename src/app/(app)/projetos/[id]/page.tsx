@@ -15,12 +15,11 @@ import {
 } from "@/lib/projetos";
 import { adicionarCustoAction, removerCustoAction } from "../actions";
 import { StatusSelector } from "./StatusSelector";
+import { SubmitButton } from "@/components/SubmitButton";
 
 const CARD = "rounded-lg border border-tertiary-fixed bg-surface-container-lowest p-4 shadow-[0_10px_30px_rgba(29,45,61,0.05)]";
 const INPUT = "h-10 w-full rounded-md border border-tertiary-fixed bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-1 focus:ring-primary";
 const FIELD_LABEL = "text-xs font-semibold uppercase tracking-wide text-on-surface-variant";
-const BTN_PRIMARY = "inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-body-md font-medium text-on-primary transition hover:bg-primary-container";
-const BTN_TEXT_DANGER = "text-body-md text-on-surface-variant transition hover:text-error";
 
 function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: React.ReactNode }) {
   return (
@@ -134,7 +133,7 @@ export default async function ProjetoDetalhePage({
               </thead>
               <tbody>
                 {resumoCategorias.map((r) => (
-                  <tr key={r.categoria} className="border-b border-tertiary-fixed last:border-0">
+                  <tr key={r.categoria} className="border-b border-tertiary-fixed transition last:border-0 hover:bg-surface-container-low">
                     <td className="py-2 text-on-background">{CATEGORIA_LABELS[r.categoria]}</td>
                     <td className="py-2 text-on-surface-variant">{formatarMoeda(r.orcado)}</td>
                     <td className="py-2 text-on-surface-variant">{formatarMoeda(r.realizado)}</td>
@@ -172,9 +171,7 @@ export default async function ProjetoDetalhePage({
           <Field label="Valor (R$)" htmlFor="custo-valor">
             <input id="custo-valor" name="valor" type="number" step="0.01" min="0" required className={INPUT} />
           </Field>
-          <button type="submit" className={BTN_PRIMARY}>
-            Adicionar
-          </button>
+          <SubmitButton labelPendente="Adicionando...">Adicionar</SubmitButton>
         </form>
 
         {projeto.custos.length === 0 ? (
@@ -186,7 +183,10 @@ export default async function ProjetoDetalhePage({
             {projeto.custos.map((custo) => {
               const removerEsteCusto = removerCustoComId.bind(null, custo.id);
               return (
-                <li key={custo.id} className="flex items-center justify-between gap-3 px-4 py-3 text-body-md">
+                <li
+                  key={custo.id}
+                  className="flex items-center justify-between gap-3 px-4 py-3 text-body-md transition hover:bg-surface-container-low"
+                >
                   <div>
                     <p className="text-on-background">{custo.descricao}</p>
                     <p className="text-on-surface-variant">
@@ -196,9 +196,9 @@ export default async function ProjetoDetalhePage({
                   <div className="flex items-center gap-3">
                     <span className="font-medium text-on-background">{formatarMoeda(custo.valor)}</span>
                     <form action={removerEsteCusto}>
-                      <button type="submit" className={BTN_TEXT_DANGER} title="Remover">
+                      <SubmitButton variante="danger" labelPendente="Removendo..." mostrarConfirmacao={false}>
                         Remover
-                      </button>
+                      </SubmitButton>
                     </form>
                   </div>
                 </li>

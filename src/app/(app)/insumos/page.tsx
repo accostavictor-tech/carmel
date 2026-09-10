@@ -9,14 +9,13 @@ import {
   reativarInsumoAction,
 } from "./actions";
 import { BuscaInsumo } from "./BuscaInsumo";
+import { SubmitButton } from "@/components/SubmitButton";
 
 const CARD = "rounded-lg border border-tertiary-fixed bg-surface-container-lowest p-5 shadow-[0_10px_30px_rgba(29,45,61,0.05)]";
 const INPUT = "h-10 w-full rounded-md border border-tertiary-fixed bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-1 focus:ring-primary";
 const INPUT_TABLE = "h-9 w-full rounded-md border border-tertiary-fixed bg-transparent px-2 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-1 focus:ring-primary";
 const FIELD_LABEL = "text-xs font-semibold uppercase tracking-wide text-on-surface-variant";
-const BTN_PRIMARY = "inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-body-md font-medium text-on-primary transition hover:bg-primary-container";
 const BTN_TEXT = "text-body-md font-medium text-primary transition hover:underline";
-const BTN_TEXT_DANGER = "text-body-md text-on-surface-variant transition hover:text-error";
 
 const POR_PAGINA = 40;
 
@@ -126,9 +125,7 @@ export default async function InsumosPage({
             className={INPUT}
           />
         </Field>
-        <button type="submit" className={BTN_PRIMARY}>
-          Adicionar
-        </button>
+        <SubmitButton labelPendente="Adicionando...">Adicionar</SubmitButton>
       </form>
 
       <BuscaInsumo termoInicial={termo} />
@@ -220,7 +217,7 @@ function TabelaInsumos({
               const reativarComId = reativarInsumoAction.bind(null, insumo.id);
               const formId = `insumo-${insumo.id}`;
               return (
-                <tr key={insumo.id} className="border-b border-tertiary-fixed last:border-0">
+                <tr key={insumo.id} className="border-b border-tertiary-fixed transition last:border-0 hover:bg-surface-container-low">
                   <td className="px-4 py-2.5">
                     <select form={formId} name="categoria" defaultValue={insumo.categoria} className={INPUT_TABLE}>
                       {CATEGORIA_INSUMO_ORDEM.map((categoria) => (
@@ -265,9 +262,13 @@ function TabelaInsumos({
                         Salvar
                       </button>
                       <form action={insumo.ativo ? arquivarComId : reativarComId}>
-                        <button type="submit" className={BTN_TEXT_DANGER}>
+                        <SubmitButton
+                          variante="danger"
+                          labelPendente={insumo.ativo ? "Arquivando..." : "Reativando..."}
+                          mostrarConfirmacao={false}
+                        >
                           {insumo.ativo ? "Arquivar" : "Reativar"}
-                        </button>
+                        </SubmitButton>
                       </form>
                     </div>
                   </td>

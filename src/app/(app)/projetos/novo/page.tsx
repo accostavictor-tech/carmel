@@ -1,6 +1,7 @@
 import { criarProjetoAction } from "../actions";
 import { formatarDataInput } from "@/lib/format";
 import { CATEGORIA_LABELS, CATEGORIA_ORDEM } from "@/lib/projetos";
+import { SubmitButton } from "@/components/SubmitButton";
 
 const INPUT = "h-10 w-full rounded-md border border-tertiary-fixed bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-1 focus:ring-primary";
 const TEXTAREA = "w-full rounded-md border border-tertiary-fixed bg-surface-container-lowest px-3 py-2 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-1 focus:ring-primary";
@@ -126,12 +127,13 @@ export default function NovoProjetoPage() {
           </div>
         </div>
 
-        <button
-          type="submit"
-          className="mt-2 inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-body-md font-medium text-on-primary transition hover:bg-primary-container"
+        <SubmitButton
+          className="mt-2"
+          labelPendente="Criando..."
+          mostrarConfirmacao={false}
         >
           Criar projeto
-        </button>
+        </SubmitButton>
       </form>
     </div>
   );

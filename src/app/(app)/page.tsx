@@ -9,6 +9,7 @@ import {
   estaAtrasado,
 } from "@/lib/projetos";
 import { definirMetaAction } from "./actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 const CARD = "rounded-lg border border-tertiary-fixed bg-surface-container-lowest p-4 shadow-[0_10px_30px_rgba(29,45,61,0.05)]";
 
@@ -84,14 +85,9 @@ export default async function DashboardPage() {
                 min="0"
                 placeholder="Definir meta (R$)"
                 required
-                className="w-full rounded border border-tertiary-fixed bg-transparent px-2 py-1 text-body-md outline-none focus:border-primary"
+                className="w-full rounded border border-tertiary-fixed bg-transparent px-2 py-1 text-body-md outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
               />
-              <button
-                type="submit"
-                className="rounded bg-primary px-3 py-1 text-body-md text-on-primary hover:bg-primary-container"
-              >
-                Salvar
-              </button>
+              <SubmitButton>Salvar</SubmitButton>
             </form>
           )}
         </div>
@@ -122,7 +118,10 @@ export default async function DashboardPage() {
           <h2 className="text-label-bold text-on-background">Produção por etapa</h2>
           <ul className="mt-3 flex flex-col divide-y divide-tertiary-fixed">
             {porEtapa.map(({ status, quantidade }) => (
-              <li key={status} className="flex items-center justify-between py-2 text-body-md">
+              <li
+                key={status}
+                className="-mx-2 flex items-center justify-between rounded-md px-2 py-2 text-body-md transition hover:bg-surface-container-low"
+              >
                 <span className="text-on-surface-variant">{STATUS_LABELS[status]}</span>
                 <span className="font-medium text-on-background">{quantidade}</span>
               </li>
@@ -137,10 +136,10 @@ export default async function DashboardPage() {
           ) : (
             <ul className="mt-3 flex flex-col divide-y divide-tertiary-fixed">
               {[...projetosAtrasados, ...projetosProximosDoPrazo].map((projeto) => (
-                <li key={projeto.id} className="py-2">
+                <li key={projeto.id} className="py-0.5">
                   <Link
                     href={`/projetos/${projeto.id}`}
-                    className="flex items-center justify-between text-body-md hover:text-primary"
+                    className="-mx-2 flex items-center justify-between rounded-md px-2 py-1.5 text-body-md transition hover:bg-surface-container-low hover:text-primary"
                   >
                     <span className="text-on-background">{projeto.nome}</span>
                     <span className={estaAtrasado(projeto) ? "font-medium text-error" : "text-secondary"}>

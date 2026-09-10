@@ -3,6 +3,8 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { logoutAction } from "./actions";
 import { BottomNav } from "./BottomNav";
+import { DesktopNav } from "./DesktopNav";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -22,34 +24,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 className="h-8 w-auto"
               />
             </Link>
-            <nav className="hidden gap-6 text-body-md sm:flex">
-              <Link href="/" className="text-on-surface-variant transition hover:text-primary">
-                Painel
-              </Link>
-              <Link href="/orcamentos" className="text-on-surface-variant transition hover:text-primary">
-                Orçamentos
-              </Link>
-              <Link href="/projetos" className="text-on-surface-variant transition hover:text-primary">
-                Projetos
-              </Link>
-              <Link href="/insumos" className="text-on-surface-variant transition hover:text-primary">
-                Insumos
-              </Link>
-              <Link href="/formas-pagamento" className="text-on-surface-variant transition hover:text-primary">
-                Pagamentos
-              </Link>
-              <Link href="/configuracoes" className="text-on-surface-variant transition hover:text-primary">
-                Configurações
-              </Link>
-            </nav>
+            <DesktopNav />
           </div>
 
           <div className="flex items-center gap-4 text-body-md text-on-surface-variant">
             <span>{session?.user?.name}</span>
             <form action={logoutAction}>
-              <button type="submit" className="transition hover:text-primary hover:underline">
+              <SubmitButton variante="text" labelPendente="Saindo..." mostrarConfirmacao={false}>
                 Sair
-              </button>
+              </SubmitButton>
             </form>
           </div>
         </div>

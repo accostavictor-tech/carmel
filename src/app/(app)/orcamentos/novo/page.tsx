@@ -1,6 +1,7 @@
 import { criarOrcamentoAction } from "../actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
-const INPUT = "rounded border border-tertiary-fixed bg-transparent px-3 py-2 text-body-md text-on-surface outline-none transition focus:border-primary";
+const INPUT = "h-10 rounded-md border border-tertiary-fixed bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-1 focus:ring-primary";
 const LABEL = "text-label-bold text-on-surface-variant";
 
 export default function NovoOrcamentoPage() {
@@ -58,12 +59,13 @@ export default function NovoOrcamentoPage() {
           </div>
         </div>
 
-        <button
-          type="submit"
-          className="mt-2 rounded bg-primary px-4 py-2 text-body-md font-medium text-on-primary transition hover:bg-primary-container"
+        <SubmitButton
+          className="mt-2"
+          labelPendente="Criando..."
+          mostrarConfirmacao={false}
         >
           Criar orçamento
-        </button>
+        </SubmitButton>
       </form>
     </div>
   );

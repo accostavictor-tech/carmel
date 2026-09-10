@@ -1,10 +1,10 @@
 import { getConfiguracaoOrcamento } from "@/lib/configuracao-orcamento";
 import { atualizarConfiguracaoOrcamentoAction } from "./actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 const CARD = "rounded-lg border border-tertiary-fixed bg-surface-container-lowest p-5 shadow-[0_10px_30px_rgba(29,45,61,0.05)]";
 const INPUT = "h-10 w-full max-w-[10rem] rounded-md border border-tertiary-fixed bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-1 focus:ring-primary";
 const FIELD_LABEL = "text-xs font-semibold uppercase tracking-wide text-on-surface-variant";
-const BTN_PRIMARY = "inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-body-md font-medium text-on-primary transition hover:bg-primary-container";
 
 function Field({ label, htmlFor, descricao, children }: { label: string; htmlFor: string; descricao: string; children: React.ReactNode }) {
   return (
@@ -64,9 +64,7 @@ export default async function ConfiguracoesPage() {
           />
         </Field>
 
-        <button type="submit" className={`${BTN_PRIMARY} self-start`}>
-          Salvar
-        </button>
+        <SubmitButton className="self-start">Salvar</SubmitButton>
       </form>
     </div>
   );

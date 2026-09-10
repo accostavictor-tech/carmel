@@ -32,16 +32,14 @@ import {
 import { StatusOrcamentoSelector } from "./StatusOrcamentoSelector";
 import { InsumoPicker } from "./InsumoPicker";
 import { CopyLinkButton } from "./CopyLinkButton";
+import { SubmitButton } from "@/components/SubmitButton";
 
 const CARD = "rounded-lg border border-tertiary-fixed bg-surface-container-lowest p-5 shadow-[0_10px_30px_rgba(29,45,61,0.05)]";
 const PAINEL = "rounded-lg border border-tertiary-fixed bg-surface-container-low p-4";
 const INPUT = "h-10 w-full rounded-md border border-tertiary-fixed bg-surface-container-lowest px-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-60";
 const LABEL = "text-label-bold text-on-surface-variant";
 const FIELD_LABEL = "text-xs font-semibold uppercase tracking-wide text-on-surface-variant";
-const BTN_PRIMARY = "inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-body-md font-medium text-on-primary transition hover:bg-primary-container disabled:opacity-60";
-const BTN_SECONDARY = "inline-flex h-10 items-center justify-center rounded-md bg-secondary px-4 text-body-md font-medium text-on-secondary transition hover:opacity-90";
 const BTN_TEXT = "text-body-md font-medium text-primary transition hover:underline";
-const BTN_TEXT_DANGER = "text-body-md text-on-surface-variant transition hover:text-error";
 
 type Insumo = {
   id: string;
@@ -189,9 +187,7 @@ export default async function OrcamentoDetalhePage({
                 className={`${INPUT} w-40`}
               />
             </Field>
-            <button type="submit" className={`${BTN_TEXT} h-10`}>
-              Salvar
-            </button>
+            <SubmitButton variante="text" className="h-10">Salvar</SubmitButton>
           </form>
         )}
       </div>
@@ -256,9 +252,7 @@ export default async function OrcamentoDetalhePage({
             </Field>
           </div>
           {!jaConvertido && (
-            <button type="submit" className={`${BTN_TEXT} self-start`}>
-              Salvar contato
-            </button>
+            <SubmitButton variante="text" className="self-start">Salvar contato</SubmitButton>
           )}
         </form>
       </div>
@@ -273,9 +267,7 @@ export default async function OrcamentoDetalhePage({
               aqui, com data e hora.
             </p>
             <form action={gerarLinkComId}>
-              <button type="submit" className={BTN_PRIMARY}>
-                Gerar link
-              </button>
+              <SubmitButton labelPendente="Gerando..." mostrarConfirmacao={false}>Gerar link</SubmitButton>
             </form>
           </div>
         ) : (
@@ -321,14 +313,14 @@ export default async function OrcamentoDetalhePage({
             {!jaConvertido && (
               <div className="flex flex-wrap gap-4">
                 <form action={renovarPrazoComId}>
-                  <button type="submit" className={BTN_TEXT}>
+                  <SubmitButton variante="text" labelPendente="Renovando..." mostrarConfirmacao={false}>
                     Renovar prazo (+21 dias)
-                  </button>
+                  </SubmitButton>
                 </form>
                 <form action={revogarLinkComId}>
-                  <button type="submit" className={BTN_TEXT_DANGER}>
+                  <SubmitButton variante="danger" labelPendente="Revogando..." mostrarConfirmacao={false}>
                     Revogar link
-                  </button>
+                  </SubmitButton>
                 </form>
               </div>
             )}
@@ -345,9 +337,9 @@ export default async function OrcamentoDetalhePage({
         </Link>
       ) : (
         <form action={aprovarComId}>
-          <button type="submit" className={BTN_SECONDARY}>
+          <SubmitButton variante="secondary" labelPendente="Aprovando..." mostrarConfirmacao={false}>
             Aprovar e criar projeto
-          </button>
+          </SubmitButton>
         </form>
       )}
 
@@ -377,9 +369,7 @@ export default async function OrcamentoDetalhePage({
             <Field label="Percentual (%)" htmlFor="orc-comissaoPct">
               <input id="orc-comissaoPct" name="percentual" type="number" step="0.01" min="0" required className={INPUT} />
             </Field>
-            <button type="submit" className={BTN_PRIMARY}>
-              Adicionar
-            </button>
+            <SubmitButton labelPendente="Adicionando...">Adicionar</SubmitButton>
           </form>
         )}
 
@@ -390,15 +380,15 @@ export default async function OrcamentoDetalhePage({
             {orcamento.comissoes.map((comissao) => {
               const removerComissaoComId = removerComissaoOrcamentoAction.bind(null, orcamento.id, comissao.id);
               return (
-                <li key={comissao.id} className="flex items-center justify-between gap-2 px-4 py-3 text-body-md">
+                <li key={comissao.id} className="flex items-center justify-between gap-2 px-4 py-3 text-body-md transition hover:bg-surface-container-low">
                   <span className="text-on-background">{comissao.nome}</span>
                   <div className="flex items-center gap-4">
                     <span className="text-on-surface-variant">{comissao.percentual}%</span>
                     {!jaConvertido && (
                       <form action={removerComissaoComId}>
-                        <button type="submit" className={BTN_TEXT_DANGER}>
+                        <SubmitButton variante="danger" labelPendente="Removendo..." mostrarConfirmacao={false}>
                           Remover
-                        </button>
+                        </SubmitButton>
                       </form>
                     )}
                   </div>
@@ -435,7 +425,7 @@ export default async function OrcamentoDetalhePage({
               const alternarComId = alternarFormaPagamentoOrcamentoAction.bind(null, orcamento.id, forma.id);
               const valorCalculado = totalComFormaPagamento(total, forma.percentual);
               return (
-                <li key={forma.id} className="flex items-center justify-between gap-2 px-4 py-3 text-body-md">
+                <li key={forma.id} className="flex items-center justify-between gap-2 px-4 py-3 text-body-md transition hover:bg-surface-container-low">
                   <div className="flex flex-col">
                     <span className="text-on-background">
                       {forma.nome}{" "}
@@ -450,9 +440,13 @@ export default async function OrcamentoDetalhePage({
                   </div>
                   {!jaConvertido && (
                     <form action={alternarComId}>
-                      <button type="submit" className={selecionada ? BTN_TEXT_DANGER : BTN_TEXT}>
+                      <SubmitButton
+                        variante={selecionada ? "danger" : "text"}
+                        labelPendente={selecionada ? "Removendo..." : "Adicionando..."}
+                        mostrarConfirmacao={false}
+                      >
                         {selecionada ? "Remover" : "Adicionar"}
-                      </button>
+                      </SubmitButton>
                     </form>
                   )}
                 </li>
@@ -488,9 +482,7 @@ export default async function OrcamentoDetalhePage({
               className={INPUT}
             />
           </Field>
-          <button type="submit" className={BTN_PRIMARY}>
-            Adicionar ambiente
-          </button>
+          <SubmitButton labelPendente="Adicionando...">Adicionar ambiente</SubmitButton>
         </form>
       )}
     </div>
@@ -526,7 +518,7 @@ function AmbienteCard({
       className="group overflow-hidden rounded-lg border border-tertiary-fixed bg-surface-container-lowest shadow-[0_10px_30px_rgba(29,45,61,0.05)]"
       open={abertoPorPadrao}
     >
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 transition hover:bg-surface-container-low [&::-webkit-details-marker]:hidden">
         <div className="flex min-w-0 items-center gap-3">
           <svg
             viewBox="0 0 20 20"
@@ -556,17 +548,15 @@ function AmbienteCard({
               />
             </Field>
             {!bloqueado && (
-              <button type="submit" className={`${BTN_TEXT} h-10`}>
-                Salvar
-              </button>
+              <SubmitButton variante="text" className="h-10">Salvar</SubmitButton>
             )}
           </form>
 
           {!bloqueado && (
             <form action={removerAmbienteComId}>
-              <button type="submit" className={`${BTN_TEXT_DANGER} h-10`}>
+              <SubmitButton variante="danger" className="h-10" labelPendente="Removendo..." mostrarConfirmacao={false}>
                 Remover ambiente
-              </button>
+              </SubmitButton>
             </form>
           )}
         </div>
@@ -597,9 +587,7 @@ function AmbienteCard({
                 className={INPUT}
               />
             </Field>
-            <button type="submit" className={BTN_PRIMARY}>
-              Adicionar item
-            </button>
+            <SubmitButton labelPendente="Adicionando...">Adicionar item</SubmitButton>
           </form>
         )}
       </div>
@@ -637,7 +625,7 @@ function ItemCard({
       className="group overflow-hidden rounded-lg border border-tertiary-fixed bg-surface-container-lowest"
       open={abertoPorPadrao}
     >
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 bg-surface-container-low p-4 [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 bg-surface-container-low p-4 transition hover:brightness-95 [&::-webkit-details-marker]:hidden">
         <div className="flex min-w-0 items-center gap-3">
           <svg
             viewBox="0 0 20 20"
@@ -660,9 +648,9 @@ function ItemCard({
           <div className="flex justify-end">
             {!bloqueado && (
               <form action={removerItemComId}>
-                <button type="submit" className={`${BTN_TEXT_DANGER} h-10`}>
+                <SubmitButton variante="danger" className="h-10" labelPendente="Removendo..." mostrarConfirmacao={false}>
                   Remover item
-                </button>
+                </SubmitButton>
               </form>
             )}
           </div>
@@ -691,9 +679,7 @@ function ItemCard({
             </Field>
 
             {!bloqueado && (
-              <button type="submit" className={`${BTN_TEXT} self-start`}>
-                Salvar
-              </button>
+              <SubmitButton variante="text" className="self-start">Salvar</SubmitButton>
             )}
           </form>
         </div>
@@ -724,9 +710,7 @@ function ItemCard({
                     className={INPUT}
                   />
                 </Field>
-                <button type="submit" className={BTN_PRIMARY}>
-                  Adicionar
-                </button>
+                <SubmitButton labelPendente="Adicionando...">Adicionar</SubmitButton>
               </div>
             </form>
           )}
@@ -753,7 +737,7 @@ function ItemCard({
                     const valorTotal =
                       material.quantidade * material.valorUnitario * (1 + material.percentualPerda / 100);
                     return (
-                      <tr key={material.id} className="border-b border-tertiary-fixed last:border-0">
+                      <tr key={material.id} className="border-b border-tertiary-fixed transition last:border-0 hover:bg-surface-container-low">
                         <td className="px-3 py-2 text-on-background">{material.descricao}</td>
                         <td className="px-3 py-2 text-on-surface-variant">{material.unidade}</td>
                         <td className="px-3 py-2 text-on-surface-variant">{formatarMoeda(material.valorUnitario)}</td>
@@ -767,9 +751,9 @@ function ItemCard({
                         <td className="px-3 py-2 text-right">
                           {!bloqueado && (
                             <form action={removerMaterialComId}>
-                              <button type="submit" className={BTN_TEXT_DANGER}>
+                              <SubmitButton variante="danger" labelPendente="Removendo..." mostrarConfirmacao={false}>
                                 Remover
-                              </button>
+                              </SubmitButton>
                             </form>
                           )}
                         </td>
@@ -806,9 +790,7 @@ function ItemCard({
               />
             </Field>
             {!bloqueado && (
-              <button type="submit" className={`${BTN_TEXT} h-10`}>
-                Salvar
-              </button>
+              <SubmitButton variante="text" className="h-10">Salvar</SubmitButton>
             )}
           </form>
 
