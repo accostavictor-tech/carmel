@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatarMoeda, formatarData } from "@/lib/format";
-import { STATUS_ORCAMENTO_LABELS, totalOrcamento } from "@/lib/orcamentos";
+import { totalOrcamento } from "@/lib/orcamentos";
 import { getConfiguracaoOrcamento } from "@/lib/configuracao-orcamento";
 import { KanbanOrcamentos } from "./KanbanOrcamentos";
+import { ListaOrcamentos } from "./ListaOrcamentos";
 import { ToggleVisualizacao } from "./ToggleVisualizacao";
 
 export default async function OrcamentosPage({
@@ -22,6 +23,17 @@ export default async function OrcamentosPage({
     getConfiguracaoOrcamento(),
   ]);
 
+  const linhas = orcamentos.map((orcamento) => ({
+    id: orcamento.id,
+    nome: orcamento.nome,
+    cliente: orcamento.cliente,
+    codigo: orcamento.codigo,
+    status: orcamento.status,
+    totalFormatado: formatarMoeda(totalOrcamento(orcamento.ambientes, orcamento.comissoes, config)),
+    dataFormatada: formatarData(orcamento.criadoEm),
+    bloqueado: Boolean(orcamento.projetoId),
+  }));
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -38,55 +50,13 @@ export default async function OrcamentosPage({
       </div>
 
       {modoKanban ? (
-        <KanbanOrcamentos
-          orcamentos={orcamentos.map((orcamento) => ({
-            id: orcamento.id,
-            nome: orcamento.nome,
-            cliente: orcamento.cliente,
-            codigo: orcamento.codigo,
-            status: orcamento.status,
-            totalFormatado: formatarMoeda(totalOrcamento(orcamento.ambientes, orcamento.comissoes, config)),
-            dataFormatada: formatarData(orcamento.criadoEm),
-          }))}
-        />
-      ) : orcamentos.length === 0 ? (
+        <KanbanOrcamentos orcamentos={linhas} />
+      ) : linhas.length === 0 ? (
         <p className="rounded-lg border border-dashed border-outline-variant bg-surface-container-lowest p-8 text-center text-body-md text-on-surface-variant">
           Nenhum orçamento cadastrado ainda.
         </p>
       ) : (
-        <ul className="flex flex-col gap-3">
-          {orcamentos.map((orcamento) => {
-            const total = totalOrcamento(orcamento.ambientes, orcamento.comissoes, config);
-            return (
-              <li key={orcamento.id}>
-                <Link
-                  href={`/orcamentos/${orcamento.id}`}
-                  className="flex flex-col gap-2 rounded-lg border border-tertiary-fixed bg-surface-container-lowest p-4 shadow-[0_10px_30px_rgba(29,45,61,0.05)] transition hover:border-primary sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-display font-semibold text-on-background">{orcamento.nome}</p>
-                      {orcamento.codigo && (
-                        <span className="rounded bg-tertiary-fixed px-1.5 py-0.5 text-xs font-semibold text-on-tertiary-fixed-variant">
-                          {orcamento.codigo}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-body-md text-on-surface-variant">{orcamento.cliente}</p>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-body-md">
-                    <span className="text-on-surface-variant">{formatarMoeda(total)}</span>
-                    <span className="rounded-lg bg-tertiary-fixed px-2 py-0.5 text-primary text-label-bold">
-                      {STATUS_ORCAMENTO_LABELS[orcamento.status]}
-                    </span>
-                    <span className="text-on-surface-variant">{formatarData(orcamento.criadoEm)}</span>
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <ListaOrcamentos orcamentos={linhas} />
       )}
     </div>
   );

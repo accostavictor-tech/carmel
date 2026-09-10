@@ -105,6 +105,30 @@ export async function atualizarStatusOrcamentoAction(orcamentoId: string, status
   revalidatePath("/orcamentos");
 }
 
+export async function atualizarStatusOrcamentosAction(ids: string[], status: string) {
+  if (ids.length === 0) return;
+  if (!Object.values(StatusOrcamento).includes(status as StatusOrcamento)) {
+    throw new Error("Status inválido.");
+  }
+
+  await prisma.orcamento.updateMany({
+    where: { id: { in: ids } },
+    data: { status: status as StatusOrcamento },
+  });
+
+  revalidatePath("/orcamentos");
+}
+
+export async function removerOrcamentosAction(ids: string[]) {
+  if (ids.length === 0) return;
+
+  // Orçamentos já convertidos em projeto não podem ser excluídos em massa
+  // (o projeto guarda os dados de fechamento e continuaria existindo órfão).
+  await prisma.orcamento.deleteMany({ where: { id: { in: ids }, projetoId: null } });
+
+  revalidatePath("/orcamentos");
+}
+
 export async function criarAmbienteAction(orcamentoId: string, formData: FormData) {
   const nome = String(formData.get("nome") ?? "").trim();
 

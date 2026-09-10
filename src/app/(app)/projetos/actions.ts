@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { StatusProducao, CategoriaCusto } from "@prisma/client";
+import { StatusProducao, CategoriaCusto, StatusOrcamento } from "@prisma/client";
 
 function numeroDeFormData(formData: FormData, campo: string): number {
   const bruto = String(formData.get(campo) ?? "0").replace(",", ".");
@@ -103,5 +103,48 @@ export async function removerCustoAction(projetoId: string, custoId: string) {
 
   revalidatePath(`/projetos/${projetoId}`);
   revalidatePath("/projetos");
+  revalidatePath("/");
+}
+
+export async function atualizarStatusProjetosAction(ids: string[], status: string) {
+  if (ids.length === 0) return;
+  if (!Object.values(StatusProducao).includes(status as StatusProducao)) {
+    throw new Error("Status inválido.");
+  }
+
+  await prisma.projeto.updateMany({
+    where: { id: { in: ids } },
+    data: {
+      statusProducao: status as StatusProducao,
+      dataEntregaReal: status === StatusProducao.CONCLUIDO ? new Date() : null,
+    },
+  });
+
+  revalidatePath("/projetos");
+  revalidatePath("/");
+}
+
+export async function removerProjetosAction(ids: string[]) {
+  if (ids.length === 0) return;
+
+  const projetos = await prisma.projeto.findMany({
+    where: { id: { in: ids } },
+    include: { orcamento: true },
+  });
+
+  await prisma.$transaction([
+    ...projetos
+      .filter((p) => p.orcamento)
+      .map((p) =>
+        prisma.orcamento.update({
+          where: { id: p.orcamento!.id },
+          data: { status: StatusOrcamento.ENVIADO },
+        })
+      ),
+    prisma.projeto.deleteMany({ where: { id: { in: ids } } }),
+  ]);
+
+  revalidatePath("/projetos");
+  revalidatePath("/orcamentos");
   revalidatePath("/");
 }
