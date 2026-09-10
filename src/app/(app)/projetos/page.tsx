@@ -12,7 +12,7 @@ export default async function ProjetosPage({
   searchParams: Promise<{ view?: string }>;
 }) {
   const { view } = await searchParams;
-  const modoKanban = view === "kanban";
+  const modoKanban = view !== "lista";
 
   const projetos = await prisma.projeto.findMany({
     include: { custos: true },

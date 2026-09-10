@@ -13,7 +13,7 @@ export default async function OrcamentosPage({
   searchParams: Promise<{ view?: string }>;
 }) {
   const { view } = await searchParams;
-  const modoKanban = view === "kanban";
+  const modoKanban = view !== "lista";
 
   const [orcamentos, config] = await Promise.all([
     prisma.orcamento.findMany({
