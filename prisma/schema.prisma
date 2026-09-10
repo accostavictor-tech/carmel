@@ -184,6 +184,7 @@ model Item {
   ambiente        Ambiente @relation(fields: [ambienteId], references: [id], onDelete: Cascade)
   nome            String // ex: "Prateleira", "Rack"
   descricao       String? // texto mostrado ao cliente no link público, no lugar da lista de materiais
+  imagemUrl       String? // foto do item (data URL), mostrada ao lado do nome no link do cliente
   percentualLucro Float    @default(0)
   ordem           Int      @default(0)
 

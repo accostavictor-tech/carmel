@@ -192,9 +192,14 @@ export async function atualizarItemAction(orcamentoId: string, itemId: string, f
     throw new Error("Dê um nome ao item.");
   }
 
+  const imagemUrl = textoOpcionalDeFormData(formData, "imagemUrl");
+  if (imagemUrl && imagemUrl.length > 2_000_000) {
+    throw new Error("Imagem muito grande. Escolha uma foto menor.");
+  }
+
   await prisma.item.update({
     where: { id: itemId },
-    data: { nome, descricao: textoOpcionalDeFormData(formData, "descricao") },
+    data: { nome, descricao: textoOpcionalDeFormData(formData, "descricao"), imagemUrl },
   });
 
   revalidatePath(`/orcamentos/${orcamentoId}`);

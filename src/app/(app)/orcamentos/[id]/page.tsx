@@ -32,6 +32,7 @@ import {
 import { StatusOrcamentoSelector } from "./StatusOrcamentoSelector";
 import { InsumoPicker } from "./InsumoPicker";
 import { CopyLinkButton } from "./CopyLinkButton";
+import { ImagemItemInput } from "./ImagemItemInput";
 import { SubmitButton } from "@/components/SubmitButton";
 
 const CARD = "rounded-lg border border-tertiary-fixed bg-surface-container-lowest p-5 shadow-[0_10px_30px_rgba(29,45,61,0.05)]";
@@ -65,6 +66,7 @@ type Item = {
   id: string;
   nome: string;
   descricao: string | null;
+  imagemUrl: string | null;
   percentualLucro: number;
   materiais: Material[];
 };
@@ -664,6 +666,10 @@ function ItemCard({
                 disabled={bloqueado}
                 className={`${INPUT} font-display font-semibold`}
               />
+            </Field>
+
+            <Field label="Foto (aparece ao lado do nome no link do cliente)">
+              <ImagemItemInput name="imagemUrl" valorInicial={item.imagemUrl} disabled={bloqueado} />
             </Field>
 
             <Field label="Descrição (aparece no link do cliente, junto com nome e valor)" htmlFor={`${uid}-descricao`}>

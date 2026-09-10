@@ -130,11 +130,21 @@ export default async function OrcamentoPublicoPage({
                     const resultadoItem = calcularItem(item, orcamento.comissoes, config);
                     return (
                       <li key={item.id} className="flex items-start justify-between gap-4 px-5 py-3 text-body-md">
-                        <div>
-                          <p className="font-medium text-on-background">{item.nome}</p>
-                          {item.descricao && (
-                            <p className="whitespace-pre-line text-on-surface-variant">{item.descricao}</p>
+                        <div className="flex items-start gap-3">
+                          {item.imagemUrl && (
+                            // eslint-disable-next-line @next/next/no-img-element -- data URL, sem otimização de next/image
+                            <img
+                              src={item.imagemUrl}
+                              alt=""
+                              className="h-14 w-14 shrink-0 rounded-md border border-tertiary-fixed object-cover"
+                            />
                           )}
+                          <div>
+                            <p className="font-semibold text-on-background">{item.nome}</p>
+                            {item.descricao && (
+                              <p className="whitespace-pre-line text-on-surface-variant">{item.descricao}</p>
+                            )}
+                          </div>
                         </div>
                         <span className="shrink-0 font-medium text-on-background">
                           {formatarMoeda(resultadoItem.totalFinal)}
