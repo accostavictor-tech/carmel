@@ -63,16 +63,16 @@ export function ListaProjetos({ projetos }: { projetos: ProjetoListaItem[] }) {
   return (
     <div className="flex flex-col gap-3">
       {projetos.length > 0 && (
-        <div className="flex items-center gap-3 border-b border-tertiary-fixed pb-3 text-body-md">
+        <label className="flex w-fit cursor-pointer items-center gap-2 p-1 text-xs text-on-surface-variant">
           <input
             type="checkbox"
             checked={todosSelecionados}
             onChange={alternarTodos}
             aria-label="Selecionar todos"
-            className="h-6 w-6 shrink-0 cursor-pointer rounded border-outline-variant text-primary focus:ring-1 focus:ring-primary"
+            className="h-3.5 w-3.5 shrink-0 cursor-pointer rounded border-outline-variant text-primary focus:ring-1 focus:ring-primary"
           />
-          <span className="text-on-surface-variant">Selecionar todos</span>
-        </div>
+          Selecionar todos
+        </label>
       )}
 
       {selecionados.size > 0 && (
@@ -130,7 +130,7 @@ export function ListaProjetos({ projetos }: { projetos: ProjetoListaItem[] }) {
                 checked={marcado}
                 onChange={() => alternar(projeto.id)}
                 aria-label={`Selecionar ${projeto.nome}`}
-                className="h-6 w-6 shrink-0 cursor-pointer rounded border-outline-variant text-primary focus:ring-1 focus:ring-primary"
+                className="h-4 w-4 shrink-0 cursor-pointer rounded border-outline-variant text-primary focus:ring-1 focus:ring-primary"
               />
               <Link
                 href={`/projetos/${projeto.id}`}
